@@ -516,8 +516,8 @@
                     window.speechSynthesis.resume();
                 }
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.96; // Conversational human pace (natural, not robotic)
-                utterance.pitch = 0.98; // Warm human voice pitch
+                utterance.rate = 1.0;
+                utterance.pitch = 0.95;
 
                 if (synthVoices.length === 0) {
                     synthVoices = window.speechSynthesis.getVoices();
@@ -526,17 +526,23 @@
                 const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
                 let preferredVoice = null;
 
-                // Prioritize Natural / Neural Online voices in Chrome & Edge
-                preferredVoice = synthVoices.find(v => (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("Online")) && (v.lang.includes("en") || v.lang.includes("hi")));
+                // Priority 1: British / J.A.R.V.I.S. Male Voice
+                if (selectedLang === "English") {
+                    preferredVoice = synthVoices.find(v => v.name.includes("UK Male") || v.name.includes("David") || v.name.includes("George") || v.name.includes("British Male") || v.name.includes("Google UK English Male") || v.lang.includes("en-GB"));
+                }
+                
+                // Priority 2: Indian / Hindi / Haryanvi Voice
+                if (!preferredVoice && (selectedLang === "Haryanvi" || selectedLang === "Hinglish")) {
+                    preferredVoice = synthVoices.find(v => v.name.includes("Madhur") || v.name.includes("Swara") || v.name.includes("Google हिन्दी") || v.lang.includes("hi-IN"));
+                }
 
-                if (!preferredVoice && selectedLang === "English") {
-                    preferredVoice = synthVoices.find(v => v.name.includes("UK") || v.name.includes("British") || v.name.includes("George") || v.name.includes("David") || v.name.includes("Google UK") || v.lang.includes("en-GB"));
-                } else if (!preferredVoice) {
-                    preferredVoice = synthVoices.find(v => v.lang.includes("hi-IN") || v.name.includes("Hindi") || v.name.includes("Google हिन्दी") || v.name.includes("Swara") || v.name.includes("Madhur"));
+                // Priority 3: Any Natural Male Voice
+                if (!preferredVoice) {
+                    preferredVoice = synthVoices.find(v => (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("Male")) && (v.lang.includes("en") || v.lang.includes("hi")));
                 }
 
                 if (!preferredVoice) {
-                    preferredVoice = synthVoices.find(v => v.name.includes("Google") || v.lang.startsWith("en"));
+                    preferredVoice = synthVoices.find(v => v.lang.startsWith("en"));
                 }
 
                 if (preferredVoice) utterance.voice = preferredVoice;
