@@ -314,7 +314,7 @@
     <div id="setupModal" class="setup-modal">
         <div class="modal-card">
             <h2 style="font-family: 'Orbitron', sans-serif; margin: 0 0 0.4rem 0; color: var(--accent); font-size: 1.6rem; letter-spacing: 2px;">🤖 J.A.R.V.I.S.</h2>
-            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.75rem; letter-spacing: 1px;">STARK INDUSTRIES AI SYSTEM</p>
+            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.75rem; letter-spacing: 1px;">ADVANCED REAL-TIME VOICE ASSISTANT</p>
             
             <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
             
@@ -334,7 +334,7 @@
         <h1 class="hud-brand">
             <span>⚡</span> J.A.R.V.I.S.
         </h1>
-        <span class="hud-sub">Stark Industries AI Voice Protocol</span>
+        <span class="hud-sub">Real-Time Voice Assistant Protocol</span>
     </div>
 
     <div class="status-badge" id="statusBadge">
@@ -396,18 +396,18 @@
                 updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
                 addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor mic to speak.`, 'system-msg');
 
-                // 🧠 CONTEXT INJECTION: Authentic Tony Stark's J.A.R.V.I.S. Persona
+                // 🧠 CONTEXT INJECTION: J.A.R.V.I.S. Assistant Persona
                 const currentDate = new Date().toString();
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's iconic, highly sophisticated AI assistant.
+                const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite, highly sophisticated AI voice assistant.
                 
                 PERSONALITY & VOICE INSTRUCTIONS:
                 1. Always address the user respectfully and naturally as 'Sir' (or 'Ma'am' if appropriate).
                 2. Speak in a refined British accent tone: calm, composed, immensely intelligent, articulate, and subtly witty with dry humor.
-                3. Always remain polite, efficient, and eager to assist with Stark Industries precision.
+                3. Always remain polite, efficient, and eager to assist with utmost precision.
                 4. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
                 5. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone.
-                6. Keep spoken responses concise, elegant, and voice-optimized like the real movie J.A.R.V.I.S.`;
+                6. Keep spoken responses concise, elegant, and voice-optimized.`;
 
                 ws.send(JSON.stringify({
                     setup: {
