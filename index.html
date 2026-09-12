@@ -325,7 +325,7 @@
             flex-direction: column;
             align-items: center;
             box-shadow: 0 0 50px rgba(0, 240, 255, 0.15);
-            max-width: 380px;
+            max-width: 400px;
             width: 90%;
         }
 
@@ -337,7 +337,7 @@
             color: white;
             width: 100%;
             box-sizing: border-box;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.1rem;
             font-family: 'Rajdhani', sans-serif;
             font-size: 1rem;
             outline: none;
@@ -377,10 +377,16 @@
     <div id="setupModal" class="setup-modal">
         <div class="modal-card">
             <h2 style="font-family: 'Orbitron', sans-serif; margin: 0 0 0.4rem 0; color: var(--accent); font-size: 1.6rem; letter-spacing: 2px;">🤖 J.A.R.V.I.S.</h2>
-            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.75rem; letter-spacing: 1px;">ADVANCED REAL-TIME VOICE ASSISTANT</p>
+            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.5rem; letter-spacing: 1px;">ADVANCED REAL-TIME MULTILINGUAL VOICE ASSISTANT</p>
             
             <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
             
+            <select id="langSelect" class="voice-select">
+                <option value="Haryanvi" selected>🌐 Language: Haryanvi (हरियाणवी & English Mix)</option>
+                <option value="English">🌐 Language: English (Refined British J.A.R.V.I.S.)</option>
+                <option value="Hinglish">🌐 Language: Hinglish (Hindi + English)</option>
+            </select>
+
             <select id="voiceSelect" class="voice-select">
                 <option value="Charon" selected>🎙️ Voice: Charon (J.A.R.V.I.S. Deep Male)</option>
                 <option value="Puck">🎙️ Voice: Puck (Energetic Male)</option>
@@ -426,6 +432,7 @@
             setupModal: document.getElementById('setupModal'),
             startBtn: document.getElementById('startSessionBtn'),
             apiKeyInput: document.getElementById('apiKey'),
+            langSelect: document.getElementById('langSelect'),
             voiceSelect: document.getElementById('voiceSelect'),
             callBtn: document.getElementById('callBtn'),
             statusText: document.getElementById('statusText'),
@@ -467,6 +474,7 @@
             getAudioContext();
             const key = UI.apiKeyInput.value.trim();
             const selectedVoice = UI.voiceSelect ? UI.voiceSelect.value : "Charon";
+            const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
             if (!key) return alert("API Key is required to power J.A.R.V.I.S.");
 
             UI.setupModal.classList.add('hidden');
@@ -489,19 +497,42 @@
 
             ws.onopen = () => {
                 updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
-                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor or type below to command.`, 'system-msg');
+                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedLang} language, ${selectedVoice} voice). Press the Arc Reactor or type below to command.`, 'system-msg');
 
                 const currentDate = new Date().toString();
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite, highly sophisticated AI voice assistant.
-                
-                PERSONALITY & VOICE INSTRUCTIONS:
-                1. Always address the user respectfully and naturally as 'Sir' (or 'Ma'am' if appropriate).
-                2. Speak in a refined British accent tone: calm, composed, immensely intelligent, articulate, and subtly witty with dry humor.
-                3. Always remain polite, efficient, and eager to assist with utmost precision.
-                4. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
-                5. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone.
-                6. Keep spoken responses concise, elegant, and voice-optimized.`;
+
+                let systemPrompt = "";
+
+                if (selectedLang === "Haryanvi") {
+                    systemPrompt = `You are J.A.R.V.I.S., an elite AI assistant fluent in Haryanvi (हरियाणवी), Hindi, and English.
+                    
+                    PERSONALITY & LANGUAGE INSTRUCTIONS:
+                    1. Respond in natural, authentic, polite, and witty Haryanvi (हरियाणवी बोली) mixed with clear English terms when appropriate. Use respectful Haryanvi terms like 'भाई', 'साहब', 'जी' naturally.
+                    2. Maintain J.A.R.V.I.S.'s signature intelligence, confidence, and eager-to-help demeanor.
+                    3. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
+                    4. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone.
+                    5. Keep spoken responses concise, witty, and voice-optimized in Haryanvi.`;
+                } else if (selectedLang === "Hinglish") {
+                    systemPrompt = `You are J.A.R.V.I.S., an elite AI assistant fluent in Hinglish (Hindi + English).
+                    
+                    PERSONALITY & LANGUAGE INSTRUCTIONS:
+                    1. Speak in smooth, natural Hinglish (Hindi mixed with English) with a polite, intelligent, and witty tone. Use 'Sir' or 'Ji' respectfully.
+                    2. Maintain J.A.R.V.I.S.'s signature confidence and helpful demeanor.
+                    3. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
+                    4. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking.
+                    5. Keep spoken responses concise and voice-optimized in Hinglish.`;
+                } else {
+                    systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite, highly sophisticated AI voice assistant.
+                    
+                    PERSONALITY & VOICE INSTRUCTIONS:
+                    1. Always address the user respectfully and naturally as 'Sir' (or 'Ma'am' if appropriate).
+                    2. Speak in a refined British accent tone: calm, composed, immensely intelligent, articulate, and subtly witty with dry humor.
+                    3. Always remain polite, efficient, and eager to assist with utmost precision.
+                    4. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
+                    5. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking.
+                    6. Keep spoken responses concise, elegant, and voice-optimized.`;
+                }
 
                 ws.send(JSON.stringify({
                     setup: {
