@@ -4,21 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. AI — Voice Assistant</title>
+    <title>J.A.R.V.I.S. AI — Stark Mark VII Multilingual Interface</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #050a12;
-            --surface: rgba(14, 23, 38, 0.85);
-            --surface-border: rgba(0, 240, 255, 0.25);
+            --bg-color: #020610;
+            --surface: rgba(10, 18, 32, 0.85);
+            --surface-border: rgba(0, 240, 255, 0.3);
             --text-main: #f0f9ff;
             --text-muted: #64748b;
             --accent: #00f0ff;
             --accent-glow: rgba(0, 240, 255, 0.6);
+            --accent-gold: #fbbf24;
             --danger: #ef4444;
             --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
@@ -26,26 +31,43 @@
             padding: 0;
             background-color: var(--bg-color);
             background-image: 
-                radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.12) 0%, transparent 60%),
-                linear-gradient(180deg, #050a12 0%, #03070d 100%);
+                radial-gradient(circle at 50% 25%, rgba(0, 240, 255, 0.15) 0%, transparent 65%),
+                linear-gradient(180deg, #020610 0%, #010307 100%);
             color: var(--text-main);
-            font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Rajdhani', -apple-system, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 100vh;
             overflow-x: hidden;
+            padding-bottom: 2rem;
         }
 
+        /* Background Holographic Grid Animation */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* HUD Header Top */
         .hud-header {
-            position: absolute;
-            top: 1.5rem;
+            width: 100%;
+            padding: 1.25rem 2rem;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 0.25rem;
-            text-align: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 10;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+            background: rgba(2, 6, 16, 0.6);
+            backdrop-filter: blur(10px);
         }
 
         .hud-brand {
@@ -55,75 +77,109 @@
             font-weight: 900;
             color: var(--accent);
             letter-spacing: 3px;
-            text-shadow: 0 0 15px var(--accent-glow);
+            text-shadow: 0 0 20px var(--accent-glow);
             display: flex;
             align-items: center;
             gap: 0.6rem;
         }
 
-        .hud-sub {
+        .hud-metrics {
+            display: flex;
+            gap: 1.5rem;
             font-family: 'Roboto Mono', monospace;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: #38bdf8;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            opacity: 0.85;
         }
 
+        .metric-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .metric-val {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Status Badge */
         .status-badge {
-            position: absolute;
-            top: 5.5rem;
             background: var(--surface);
             backdrop-filter: blur(12px);
-            padding: 0.4rem 1.2rem;
+            padding: 0.45rem 1.4rem;
             border-radius: 999px;
             font-family: 'Roboto Mono', monospace;
             font-size: 0.8rem;
-            font-weight: 600;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 0.6rem;
             border: 1px solid var(--surface-border);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 1rem;
+            z-index: 10;
+        }
+
+        .status-badge:hover {
+            transform: scale(1.04);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 9px;
+            height: 9px;
             border-radius: 50%;
             background: var(--text-muted);
         }
 
         .dot.live {
             background: var(--success);
-            box-shadow: 0 0 10px var(--success);
+            box-shadow: 0 0 12px var(--success);
         }
 
         .dot.speaking {
             background: var(--accent);
-            box-shadow: 0 0 12px var(--accent);
+            box-shadow: 0 0 15px var(--accent);
         }
 
-        .orb-container {
+        .dot.error {
+            background: var(--danger);
+            box-shadow: 0 0 15px var(--danger);
+        }
+
+        /* Arc Reactor & Visualizer Canvas Wrapper */
+        .reactor-wrapper {
             position: relative;
-            width: 180px;
-            height: 180px;
+            width: 260px;
+            height: 260px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 5rem;
-            margin-bottom: 1.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            z-index: 10;
+        }
+
+        #visualizerCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
         }
 
         .arc-reactor-btn {
-            width: 130px;
-            height: 130px;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
             border: 2px solid var(--accent);
-            background: #030812;
+            background: #020712;
             cursor: pointer;
-            z-index: 10;
-            box-shadow: 0 0 35px rgba(0, 240, 255, 0.5), inset 0 0 20px rgba(0, 240, 255, 0.3);
+            z-index: 5;
+            box-shadow: 0 0 45px rgba(0, 240, 255, 0.6), inset 0 0 25px rgba(0, 240, 255, 0.4);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
@@ -139,65 +195,71 @@
             height: 100%;
             object-fit: cover;
             border-radius: 50%;
-            filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.8));
+            filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.9));
             transition: filter 0.3s, transform 0.3s;
-            animation: reactor-slow-spin 25s linear infinite;
+            animation: reactor-spin 30s linear infinite;
         }
 
-        @keyframes reactor-slow-spin {
+        @keyframes reactor-spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
 
         .arc-reactor-btn:hover {
             transform: scale(1.08);
-            box-shadow: 0 0 55px rgba(0, 240, 255, 0.85), inset 0 0 35px rgba(0, 240, 255, 0.5);
-        }
-
-        .arc-reactor-btn:hover .arc-reactor-img {
-            filter: drop-shadow(0 0 18px rgba(0, 240, 255, 1));
+            box-shadow: 0 0 65px rgba(0, 240, 255, 0.9), inset 0 0 40px rgba(0, 240, 255, 0.6);
         }
 
         .arc-reactor-btn.active {
             border-color: #fca5a5;
-            box-shadow: 0 0 55px rgba(239, 68, 68, 0.9);
-            transform: scale(var(--mic-scale, 1));
+            box-shadow: 0 0 75px rgba(239, 68, 68, 0.95), inset 0 0 40px rgba(239, 68, 68, 0.6);
+            transform: scale(1.06);
         }
 
         .arc-reactor-btn.active .arc-reactor-img {
-            filter: drop-shadow(0 0 22px rgba(239, 68, 68, 1)) hue-rotate(130deg);
+            filter: drop-shadow(0 0 28px rgba(239, 68, 68, 1)) hue-rotate(130deg);
         }
 
-        .ring {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid var(--accent);
-            opacity: 0;
-            pointer-events: none;
-            box-shadow: 0 0 25px var(--accent-glow);
-            transform: scale(var(--ai-scale, 1));
-            transition: transform 0.05s ease-out, opacity 0.1s;
+        /* Quick Action Chips */
+        .chips-container {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 90%;
+            max-width: 600px;
+            margin-bottom: 0.8rem;
+            z-index: 10;
         }
 
-        .speaking-mode .ring {
-            opacity: 0.85;
-            animation: pulse-ring 2s infinite linear;
+        .chip {
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            color: #38bdf8;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        @keyframes pulse-ring {
-            0% { border-color: #00f0ff; }
-            50% { border-color: #38bdf8; }
-            100% { border-color: #00f0ff; }
+        .chip:hover {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            transform: translateY(-1px);
         }
 
+        /* Terminal Display Container */
         .transcript-container {
             width: 90%;
-            max-width: 540px;
-            height: 260px;
+            max-width: 620px;
+            height: 280px;
             background: var(--surface);
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(18px);
             border-radius: 16px;
             padding: 1.25rem;
             overflow-y: auto;
@@ -205,48 +267,64 @@
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+        }
+
+        .transcript-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .transcript-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 240, 255, 0.3);
+            border-radius: 3px;
         }
 
         .input-bar {
             width: 90%;
-            max-width: 540px;
+            max-width: 620px;
             display: flex;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
+            gap: 0.6rem;
+            margin-top: 0.85rem;
+            z-index: 10;
         }
 
         .text-input {
             flex: 1;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
+            padding: 0.85rem 1.2rem;
+            border-radius: 12px;
             border: 1px solid var(--surface-border);
-            background: rgba(6, 11, 19, 0.9);
+            background: rgba(4, 9, 18, 0.95);
             color: white;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1rem;
+            font-size: 1.05rem;
+            font-weight: 600;
             outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .text-input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 10px var(--accent-glow);
+            box-shadow: 0 0 18px var(--accent-glow);
         }
 
         .btn-send {
-            padding: 0.75rem 1.25rem;
-            border-radius: 10px;
-            background: var(--accent);
-            color: #03070d;
+            padding: 0.85rem 1.6rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00f0ff 0%, #0284c7 100%);
+            color: #020610;
             border: none;
             font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
+            font-weight: 800;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
         }
 
         .btn-send:hover {
-            background: #38bdf8;
+            transform: translateY(-1px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
         }
 
         .message {
@@ -259,11 +337,17 @@
             max-width: 85%;
             width: fit-content;
             word-wrap: break-word;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .user-msg {
             background: rgba(30, 41, 59, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            border: 1px solid rgba(148, 163, 184, 0.25);
             align-self: flex-end;
             color: #f1f5f9;
             border-bottom-right-radius: 4px;
@@ -271,7 +355,7 @@
 
         .ai-msg {
             background: rgba(0, 240, 255, 0.08);
-            border: 1px solid rgba(0, 240, 255, 0.3);
+            border: 1px solid rgba(0, 240, 255, 0.35);
             align-self: flex-start;
             color: #38bdf8;
             border-bottom-left-radius: 4px;
@@ -295,16 +379,17 @@
             font-size: 0.82rem;
             border-radius: 8px;
             padding: 0.75rem 1rem;
-            width: 90%;
+            width: 95%;
             box-sizing: border-box;
             white-space: pre-wrap;
         }
 
+        /* Modal Setup Overlay */
         .setup-modal {
             position: fixed;
             inset: 0;
-            background: rgba(3, 7, 13, 0.96);
-            backdrop-filter: blur(20px);
+            background: rgba(2, 6, 16, 0.96);
+            backdrop-filter: blur(25px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -317,15 +402,15 @@
         }
 
         .modal-card {
-            background: rgba(14, 23, 38, 0.9);
+            background: rgba(10, 18, 32, 0.95);
             border: 1px solid var(--surface-border);
             padding: 2.5rem;
-            border-radius: 20px;
+            border-radius: 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: 0 0 50px rgba(0, 240, 255, 0.15);
-            max-width: 400px;
+            box-shadow: 0 0 60px rgba(0, 240, 255, 0.2);
+            max-width: 440px;
             width: 90%;
         }
 
@@ -333,27 +418,28 @@
             padding: 0.85rem 1rem;
             border-radius: 10px;
             border: 1px solid var(--surface-border);
-            background: #060b13;
+            background: #040912;
             color: white;
             width: 100%;
             box-sizing: border-box;
             margin-bottom: 1.1rem;
             font-family: 'Rajdhani', sans-serif;
             font-size: 1rem;
+            font-weight: 600;
             outline: none;
             transition: border-color 0.2s;
         }
 
         .api-input:focus, .voice-select:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 15px var(--accent-glow);
+            box-shadow: 0 0 18px var(--accent-glow);
         }
 
         .btn-start {
-            padding: 0.9rem 2rem;
-            border-radius: 10px;
+            padding: 0.95rem 2rem;
+            border-radius: 12px;
             background: linear-gradient(135deg, #00f0ff 0%, #0284c7 100%);
-            color: #03070d;
+            color: #020610;
             font-family: 'Orbitron', sans-serif;
             font-weight: 800;
             font-size: 0.95rem;
@@ -362,12 +448,12 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             width: 100%;
-            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
         }
 
         .btn-start:hover {
             transform: translateY(-2px);
-            box-shadow: 0 0 35px rgba(0, 240, 255, 0.7);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.75);
         }
     </style>
 </head>
@@ -376,8 +462,8 @@
 
     <div id="setupModal" class="setup-modal">
         <div class="modal-card">
-            <h2 style="font-family: 'Orbitron', sans-serif; margin: 0 0 0.4rem 0; color: var(--accent); font-size: 1.6rem; letter-spacing: 2px;">🤖 J.A.R.V.I.S.</h2>
-            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.5rem; letter-spacing: 1px;">ADVANCED REAL-TIME MULTILINGUAL VOICE ASSISTANT</p>
+            <h2 style="font-family: 'Orbitron', sans-serif; margin: 0 0 0.4rem 0; color: var(--accent); font-size: 1.7rem; letter-spacing: 2px;">⚡ J.A.R.V.I.S. AI</h2>
+            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.5rem; letter-spacing: 1px;">STARK MARK VII REAL-TIME ASSISTANT PROTOCOL</p>
             
             <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
 
@@ -412,28 +498,44 @@
         <h1 class="hud-brand">
             <span>⚡</span> J.A.R.V.I.S.
         </h1>
-        <span class="hud-sub">Real-Time Voice Assistant Protocol</span>
+        <div class="hud-metrics">
+            <div class="metric-box">
+                <span style="opacity:0.6;">SYSTEM CLOCK</span>
+                <span class="metric-val" id="clockDisplay">15:41 IST</span>
+            </div>
+            <div class="metric-box">
+                <span style="opacity:0.6;">NEURAL CORE</span>
+                <span class="metric-val">3.9 GHz / 24kHz</span>
+            </div>
+        </div>
     </div>
 
-    <div class="status-badge" id="statusBadge" style="cursor: pointer;" title="Click to open settings/reconnect">
+    <div class="status-badge" id="statusBadge" title="Click to configure settings or reconnect">
         <div class="dot" id="statusDot"></div>
         <span id="statusText">SYSTEM STANDBY</span>
-        <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 0.4rem;">⚙️</span>
+        <span style="font-size: 0.75rem; opacity: 0.6; margin-left: 0.3rem;">⚙️</span>
     </div>
 
-    <div class="orb-container" id="orbContainer">
-        <div class="ring"></div>
+    <div class="reactor-wrapper">
+        <canvas id="visualizerCanvas" width="260" height="260"></canvas>
         <button class="arc-reactor-btn" id="callBtn" title="Activate J.A.R.V.I.S. Arc Reactor">
             <img src="arc_reactor.png" alt="Arc Reactor Core" class="arc-reactor-img">
         </button>
     </div>
 
+    <div class="chips-container">
+        <div class="chip" onclick="quickSend('Ram Ram Jarvis, Kisa hai bhai?')">⚡ Ram Ram Jarvis!</div>
+        <div class="chip" onclick="quickSend('Check my calendar schedule for today.')">📅 Check Schedule</div>
+        <div class="chip" onclick="quickSend('Book a meeting titled Stark Project Review today at 5 PM with Stark Team.')">🎙️ Book Meeting</div>
+        <div class="chip" onclick="quickSend('What can you do for me, Jarvis?')">🤖 Capabilities</div>
+    </div>
+
     <div class="transcript-container" id="transcript">
-        <div class="message system-msg">[SYSTEM] Awaiting user initialization...</div>
+        <div class="message system-msg">[SYSTEM] Awaiting user initialization. Click status badge ⚙️ to configure.</div>
     </div>
 
     <div class="input-bar">
-        <input type="text" id="textInput" class="text-input" placeholder="Type a message or press Arc Reactor to speak...">
+        <input type="text" id="textInput" class="text-input" placeholder="Type a command or tap Arc Reactor to speak...">
         <button id="sendBtn" class="btn-send">SEND</button>
     </div>
 
@@ -451,9 +553,9 @@
             statusText: document.getElementById('statusText'),
             statusDot: document.getElementById('statusDot'),
             transcript: document.getElementById('transcript'),
-            orbContainer: document.getElementById('orbContainer'),
             textInput: document.getElementById('textInput'),
-            sendBtn: document.getElementById('sendBtn')
+            sendBtn: document.getElementById('sendBtn'),
+            clockDisplay: document.getElementById('clockDisplay')
         };
 
         let isCallActive = false;
@@ -471,7 +573,19 @@
 
         let micAnalyser = null;
         let aiAnalyser = null;
-        let visualizerId = null;
+        let canvas = document.getElementById('visualizerCanvas');
+        let canvasCtx = canvas ? canvas.getContext('2d') : null;
+        let animFrameId = null;
+
+        // Clock display update
+        function updateClock() {
+            const now = new Date();
+            if (UI.clockDisplay) {
+                UI.clockDisplay.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " IST";
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
         // Auto-load saved API key if present
         const savedKey = localStorage.getItem('jarvis_api_key');
@@ -502,6 +616,7 @@
                 aiAnalyser = audioContext.createAnalyser();
                 aiAnalyser.fftSize = 256;
                 aiAnalyser.connect(audioContext.destination);
+                startCanvasVisualizer();
             }
             if (audioContext.state === 'suspended') {
                 audioContext.resume().catch(() => {});
@@ -571,6 +686,40 @@
             });
         }
 
+        function startCanvasVisualizer() {
+            if (!canvasCtx) return;
+            const micData = new Uint8Array(128);
+            const aiData = new Uint8Array(128);
+
+            function render() {
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+                let level = 0;
+                if (micAnalyser && isCallActive) {
+                    micAnalyser.getByteFrequencyData(micData);
+                    level = micData.reduce((a, b) => a + b, 0) / micData.length;
+                } else if (aiAnalyser) {
+                    aiAnalyser.getByteFrequencyData(aiData);
+                    level = aiData.reduce((a, b) => a + b, 0) / aiData.length;
+                }
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = 80 + (level / 255) * 20;
+
+                canvasCtx.beginPath();
+                canvasCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                canvasCtx.strokeStyle = level > 10 ? '#00f0ff' : 'rgba(0, 240, 255, 0.25)';
+                canvasCtx.lineWidth = 3;
+                canvasCtx.shadowBlur = level > 10 ? 20 : 5;
+                canvasCtx.shadowColor = '#00f0ff';
+                canvasCtx.stroke();
+
+                animFrameId = requestAnimationFrame(render);
+            }
+            render();
+        }
+
         UI.startBtn.addEventListener('click', () => {
             unlockAudio();
             const key = UI.apiKeyInput.value.trim();
@@ -594,7 +743,7 @@
 
             ws.onerror = (err) => {
                 console.error("WebSocket Error:", err);
-                updateStatus('CONNECTION ERROR', 'muted');
+                updateStatus('CONNECTION ERROR', 'error');
                 addMessage('[ERROR] Could not connect to Gemini Live API. Please verify your API Key & Internet connection.', 'system-msg');
             };
 
@@ -606,8 +755,8 @@
             };
 
             ws.onopen = () => {
-                updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
-                const welcomeMsg = `Online and at your service, Sir (${selectedLang} language, ${selectedVoice} voice). Press the Arc Reactor or type below to command.`;
+                updateStatus('J.A.R.V.I.S. ONLINE', 'live');
+                const welcomeMsg = `Online and at your service, Sir (${selectedLang} language, ${selectedVoice} voice). Tap Arc Reactor or select a quick command below.`;
                 addMessage(`[J.A.R.V.I.S.] ${welcomeMsg}`, 'system-msg');
                 speakTextFallback(welcomeMsg);
 
@@ -701,7 +850,7 @@
 
                     if (msg.error) {
                         console.error("Gemini API Error:", msg.error);
-                        updateStatus('API ERROR', 'muted');
+                        updateStatus('API ERROR', 'error');
                         const errMsg = msg.error.message || JSON.stringify(msg.error);
                         addMessage(`[ERROR] Gemini API Error: ${errMsg}`, 'system-msg');
                         speakTextFallback(`API Error: ${errMsg}`);
@@ -825,6 +974,11 @@
             }));
         }
 
+        function quickSend(txt) {
+            UI.textInput.value = txt;
+            sendTextMessage();
+        }
+
         UI.sendBtn.addEventListener('click', sendTextMessage);
         UI.textInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') sendTextMessage();
@@ -845,7 +999,6 @@
 
                     micAnalyser = ctx.createAnalyser();
                     micAnalyser.fftSize = 256;
-                    startVisualizer();
 
                     mediaStream = await navigator.mediaDevices.getUserMedia({
                         audio: { echoCancellation: true, noiseSuppression: true }
@@ -875,47 +1028,17 @@
                     console.error("Microphone access error:", err);
                     isCallActive = false;
                     UI.callBtn.classList.remove('active');
-                    updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
+                    updateStatus('J.A.R.V.I.S. ONLINE', 'live');
                     addMessage('[ERROR] Could not access microphone. Please check browser permissions.', 'system-msg');
                 }
             } else {
                 UI.callBtn.classList.remove('active');
-                UI.orbContainer.classList.remove('speaking-mode');
-                updateStatus('STANDBY', 'muted');
-
-                if (visualizerId) cancelAnimationFrame(visualizerId);
-                UI.callBtn.style.setProperty('--mic-scale', '1');
-                UI.orbContainer.style.setProperty('--ai-scale', '1');
+                updateStatus('J.A.R.V.I.S. ONLINE', 'live');
 
                 if (scriptProcessor) scriptProcessor.disconnect();
                 if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
             }
         });
-
-        function startVisualizer() {
-            if (!micAnalyser || !aiAnalyser) return;
-            const micData = new Uint8Array(micAnalyser.frequencyBinCount);
-            const aiData = new Uint8Array(aiAnalyser.frequencyBinCount);
-
-            function render() {
-                if (!isCallActive) return;
-
-                micAnalyser.getByteFrequencyData(micData);
-                aiAnalyser.getByteFrequencyData(aiData);
-
-                const micVol = micData.reduce((a, b) => a + b, 0) / micData.length;
-                const aiVol = aiData.reduce((a, b) => a + b, 0) / aiData.length;
-
-                const micScale = 1 + (micVol / 255) * 0.15;
-                const aiScale = 1 + (aiVol / 255) * 0.8;
-
-                UI.callBtn.style.setProperty('--mic-scale', micScale);
-                UI.orbContainer.style.setProperty('--ai-scale', aiScale);
-
-                visualizerId = requestAnimationFrame(render);
-            }
-            render();
-        }
 
         function float32ToBase64(float32Array) {
             let buffer = new ArrayBuffer(float32Array.length * 2);
@@ -990,9 +1113,13 @@
         }
         function setSpeakingState(isSpeaking) {
             if (isSpeaking) {
-                UI.orbContainer.classList.add('speaking-mode'); updateStatus('J.A.R.V.I.S. SPEAKING', 'speaking');
+                updateStatus('J.A.R.V.I.S. SPEAKING', 'speaking');
             } else {
-                UI.orbContainer.classList.remove('speaking-mode'); if (isCallActive) updateStatus('LISTENING...', 'live');
+                if (isCallActive) {
+                    updateStatus('LISTENING...', 'live');
+                } else {
+                    updateStatus('J.A.R.V.I.S. ONLINE', 'live');
+                }
             }
         }
         function addMessage(text, typeClass, isChunk = false) {
