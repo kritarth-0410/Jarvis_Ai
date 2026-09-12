@@ -593,7 +593,9 @@
                             const float32Data = e.inputBuffer.getChannelData(0);
                             ws.send(JSON.stringify({
                                 realtimeInput: {
-                                    audio: { mimeType: "audio/pcm;rate=16000", data: float32ToBase64(float32Data) }
+                                    mediaChunks: [
+                                        { mimeType: "audio/pcm;rate=16000", data: float32ToBase64(float32Data) }
+                                    ]
                                 }
                             }));
                         }
