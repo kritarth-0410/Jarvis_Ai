@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NovaVoice - AI Assistant</title>
+    <title>JARVIS AI — Voice Assistant</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -182,24 +182,33 @@
             display: none;
         }
 
-        .api-input {
-            padding: 1rem;
+        .api-input, .voice-select {
+            padding: 0.85rem 1rem;
             border-radius: 8px;
             border: 1px solid #334155;
             background: #0f172a;
             color: white;
-            width: 300px;
+            width: 320px;
             margin-bottom: 1rem;
+            font-size: 0.95rem;
         }
 
         .btn-start {
-            padding: 1rem 2rem;
+            padding: 0.85rem 2rem;
             border-radius: 8px;
-            background: var(--success);
+            background: var(--accent);
             color: white;
             border: none;
             font-weight: bold;
+            font-size: 1rem;
             cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            width: 320px;
+        }
+
+        .btn-start:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -207,12 +216,30 @@
 <body>
 
     <div id="setupModal" class="setup-modal">
-        <h2>Welcome to NovaVoice</h2>
+        <h2 style="margin-bottom: 0.5rem; color: #60a5fa;">🤖 J.A.R.V.I.S. Voice AI</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Gemini Live Real-time Assistant</p>
+        
         <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
-        <button id="startSessionBtn" class="btn-start">Connect to Agent</button>
+        
+        <select id="voiceSelect" class="voice-select">
+            <option value="Charon" selected>🎙️ Voice: Charon (J.A.R.V.I.S. Deep Male)</option>
+            <option value="Puck">🎙️ Voice: Puck (Energetic Male)</option>
+            <option value="Fenrir">🎙️ Voice: Fenrir (Resonant Male)</option>
+            <option value="Aoede">🎙️ Voice: Aoede (Warm Female)</option>
+            <option value="Kore">🎙️ Voice: Kore (Calm Female)</option>
+        </select>
+
+        <button id="startSessionBtn" class="btn-start">Connect to J.A.R.V.I.S.</button>
     </div>
 
-    <div class="status-badge" id="statusBadge">
+    <div style="position: absolute; top: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+        <h1 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #60a5fa; letter-spacing: 1.5px; display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.4rem;">🤖</span> JARVIS AI
+        </h1>
+        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">Voice Assistant</span>
+    </div>
+
+    <div class="status-badge" id="statusBadge" style="top: 5rem;">
         <div class="dot" id="statusDot"></div>
         <span id="statusText">Disconnected</span>
     </div>
@@ -231,6 +258,7 @@
             setupModal: document.getElementById('setupModal'),
             startBtn: document.getElementById('startSessionBtn'),
             apiKeyInput: document.getElementById('apiKey'),
+            voiceSelect: document.getElementById('voiceSelect'),
             callBtn: document.getElementById('callBtn'),
             statusText: document.getElementById('statusText'),
             statusDot: document.getElementById('statusDot'),
@@ -256,32 +284,34 @@
 
         UI.startBtn.addEventListener('click', () => {
             const key = UI.apiKeyInput.value.trim();
+            const selectedVoice = UI.voiceSelect ? UI.voiceSelect.value : "Charon";
             if (!key) return alert("API Key is required.");
 
             UI.setupModal.classList.add('hidden');
             updateStatus('Connecting...', 'speaking');
-            addMessage('Initializing connection to Gemini...', 'system-msg');
+            addMessage('Initializing connection to J.A.R.V.I.S....', 'system-msg');
 
             const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
                 updateStatus('Ready', 'muted');
-                addMessage('System ready. Tap the mic to call.', 'system-msg');
+                addMessage(`J.A.R.V.I.S. online (${selectedVoice} voice). Tap the mic to speak.`, 'system-msg');
 
-                // 🧠 CONTEXT INJECTION: Give Gemini the exact date and timezone
+                // 🧠 CONTEXT INJECTION: J.A.R.V.I.S. Persona + Timezone
                 const currentDate = new Date().toString();
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const systemPrompt = `You are a professional, helpful booking assistant. 
+                const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite AI assistant inspired by Iron Man's JARVIS. 
+                Speak in a refined, polite, articulate, and subtly witty tone with impeccable manners (addressing the user respectfully as 'Sir' or 'Ma'am' when appropriate).
                 CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone. 
-                Always check availability first before booking a meeting to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone.`;
+                You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking a meeting to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone. Keep responses concise, natural, and voice-optimized.`;
 
                 ws.send(JSON.stringify({
                     setup: {
                         model: "models/gemini-3.1-flash-live-preview",
                         generationConfig: {
                             responseModalities: ["AUDIO"],
-                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } }
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
                         },
                         systemInstruction: { parts: [{ text: systemPrompt }] },
                         tools: [{

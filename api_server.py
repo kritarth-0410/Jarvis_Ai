@@ -1,3 +1,8 @@
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from calendar_tool import book_meeting, check_availability

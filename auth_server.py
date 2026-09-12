@@ -1,5 +1,10 @@
 # auth_server.py
 import os
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 from flask import Flask, request
 from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
@@ -31,7 +36,7 @@ flow = Flow.from_client_config(
 @app.route('/')
 def index():
     auth_url, _ = flow.authorization_url(prompt='consent')
-    return f'<h2>AI Calling Assistant</h2><a href="{auth_url}">Click here to Authorize Google Calendar</a>'
+    return f'<h2>JARVIS AI Assistant</h2><a href="{auth_url}">Click here to Authorize Google Calendar</a>'
 
 @app.route('/auth/callback')
 def callback():
@@ -46,5 +51,5 @@ def callback():
 
 if __name__ == '__main__':
     print("🚀 Starting local auth server...")
-    print("👉 Open http://localhost:8000 in your browser to log in.")
-    app.run(port=8000)
+    print("👉 Open http://localhost:8000 or http://127.0.0.1:8000 in your browser to log in.")
+    app.run(host='0.0.0.0', port=8000)
