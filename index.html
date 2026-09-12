@@ -395,6 +395,10 @@
                 <option value="Kore">🎙️ Voice: Kore (Calm Female)</option>
             </select>
 
+            <div style="display: flex; gap: 0.5rem; width: 100%; margin-bottom: 1rem;">
+                <button id="testVoiceBtn" type="button" style="flex: 1; padding: 0.75rem; border-radius: 10px; background: rgba(0,240,255,0.15); border: 1px solid var(--accent); color: var(--accent); font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer;">🔊 TEST VOICE</button>
+            </div>
+
             <button id="startSessionBtn" class="btn-start">INITIALIZE J.A.R.V.I.S.</button>
         </div>
     </div>
@@ -431,6 +435,7 @@
         const UI = {
             setupModal: document.getElementById('setupModal'),
             startBtn: document.getElementById('startSessionBtn'),
+            testVoiceBtn: document.getElementById('testVoiceBtn'),
             apiKeyInput: document.getElementById('apiKey'),
             langSelect: document.getElementById('langSelect'),
             voiceSelect: document.getElementById('voiceSelect'),
@@ -449,6 +454,8 @@
         let mediaStream = null;
         let scriptProcessor = null;
         let nextPlayTime = 0;
+        let audioPlayedInTurn = false;
+        let currentTurnText = "";
 
         let activeBubble = null;
         let activeRole = null;
@@ -458,24 +465,106 @@
         let aiAnalyser = null;
         let visualizerId = null;
 
+        // Auto-load saved API key if present
+        const savedKey = localStorage.getItem('jarvis_api_key');
+        if (savedKey) {
+            UI.apiKeyInput.value = savedKey;
+        }
+
+        let synthVoices = [];
+        function loadVoices() {
+            if ('speechSynthesis' in window) {
+                synthVoices = window.speechSynthesis.getVoices();
+            }
+        }
+        if ('speechSynthesis' in window) {
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
         function getAudioContext() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
                 aiAnalyser = audioContext.createAnalyser();
                 aiAnalyser.fftSize = 256;
+                aiAnalyser.connect(audioContext.destination);
             }
             if (audioContext.state === 'suspended') {
-                audioContext.resume();
+                audioContext.resume().catch(() => {});
             }
             return audioContext;
         }
 
-        UI.startBtn.addEventListener('click', () => {
+        function unlockAudio() {
             getAudioContext();
+            if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+        }
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
+        window.addEventListener('touchstart', unlockAudio);
+
+        function speakTextFallback(text) {
+            if (!('speechSynthesis' in window) || !text || !text.trim()) return;
+            try {
+                window.speechSynthesis.cancel();
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                utterance.pitch = 0.95;
+
+                if (synthVoices.length === 0) {
+                    synthVoices = window.speechSynthesis.getVoices();
+                }
+
+                const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
+                let preferredVoice = null;
+
+                if (selectedLang === "English") {
+                    preferredVoice = synthVoices.find(v => v.name.includes("UK") || v.name.includes("British") || v.name.includes("David") || v.name.includes("George") || v.lang.includes("en-GB"));
+                } else {
+                    preferredVoice = synthVoices.find(v => v.lang.includes("hi-IN") || v.name.includes("Hindi") || v.name.includes("Google हिन्दी"));
+                }
+
+                if (!preferredVoice) {
+                    preferredVoice = synthVoices.find(v => v.lang.startsWith("en"));
+                }
+
+                if (preferredVoice) utterance.voice = preferredVoice;
+
+                utterance.onstart = () => setSpeakingState(true);
+                utterance.onend = () => setSpeakingState(false);
+                utterance.onerror = () => setSpeakingState(false);
+
+                window.speechSynthesis.speak(utterance);
+            } catch (err) {
+                console.error("SpeechSynthesis error:", err);
+            }
+        }
+
+        if (UI.testVoiceBtn) {
+            UI.testVoiceBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                unlockAudio();
+                const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
+                const testMsg = selectedLang === "Haryanvi" 
+                    ? "राम राम भाई! J.A.R.V.I.S. voice systems operational." 
+                    : "J.A.R.V.I.S. online. Spoken voice systems functioning properly, Sir.";
+                speakTextFallback(testMsg);
+            });
+        }
+
+        UI.startBtn.addEventListener('click', () => {
+            unlockAudio();
             const key = UI.apiKeyInput.value.trim();
             const selectedVoice = UI.voiceSelect ? UI.voiceSelect.value : "Charon";
             const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
             if (!key) return alert("API Key is required to power J.A.R.V.I.S.");
+
+            localStorage.setItem('jarvis_api_key', key);
 
             UI.setupModal.classList.add('hidden');
             updateStatus('CONNECTING...', 'speaking');
@@ -497,7 +586,9 @@
 
             ws.onopen = () => {
                 updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
-                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedLang} language, ${selectedVoice} voice). Press the Arc Reactor or type below to command.`, 'system-msg');
+                const welcomeMsg = `Online and at your service, Sir (${selectedLang} language, ${selectedVoice} voice). Press the Arc Reactor or type below to command.`;
+                addMessage(`[J.A.R.V.I.S.] ${welcomeMsg}`, 'system-msg');
+                speakTextFallback(welcomeMsg);
 
                 const currentDate = new Date().toString();
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -635,6 +726,8 @@
                             activeBubble = null;
                             activeSources.forEach(source => { try { source.stop(); } catch (e) { } });
                             activeSources = [];
+                            audioPlayedInTurn = false;
+                            currentTurnText = "";
                         }
 
                         if (content.inputTranscription && content.inputTranscription.text) {
@@ -644,19 +737,30 @@
                         if (content.outputTranscription && content.outputTranscription.text) {
                             setSpeakingState(true);
                             addMessage(content.outputTranscription.text, 'ai-msg', true);
+                            currentTurnText += content.outputTranscription.text;
                         }
 
-                        if (content.modelTurn) {
+                        if (content.modelTurn && content.modelTurn.parts) {
                             for (const part of content.modelTurn.parts) {
                                 if (part.inlineData && part.inlineData.data) {
-                                    playAudioBase64(part.inlineData.data);
+                                    const played = playAudioBase64(part.inlineData.data);
+                                    if (played) audioPlayedInTurn = true;
+                                }
+                                if (part.text) {
+                                    setSpeakingState(true);
+                                    addMessage(part.text, 'ai-msg', true);
+                                    currentTurnText += part.text;
                                 }
                             }
                         }
 
                         if (content.turnComplete) {
-                            setSpeakingState(false);
+                            if (!audioPlayedInTurn && currentTurnText.trim().length > 0) {
+                                speakTextFallback(currentTurnText);
+                            }
                             activeBubble = null;
+                            currentTurnText = "";
+                            audioPlayedInTurn = false;
                         }
                     }
                 } catch (parseError) {
@@ -666,12 +770,14 @@
         });
 
         function sendTextMessage() {
-            getAudioContext();
+            unlockAudio();
             const text = UI.textInput.value.trim();
             if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
             addMessage(text, 'user-msg');
             UI.textInput.value = '';
+            audioPlayedInTurn = false;
+            currentTurnText = "";
 
             ws.send(JSON.stringify({
                 clientContent: {
@@ -689,7 +795,7 @@
         });
 
         UI.callBtn.addEventListener('click', async () => {
-            getAudioContext();
+            unlockAudio();
             isCallActive = !isCallActive;
 
             if (isCallActive) {
@@ -730,9 +836,11 @@
                     scriptProcessor.connect(ctx.destination);
 
                 } catch (err) {
+                    console.error("Microphone access error:", err);
                     isCallActive = false;
                     UI.callBtn.classList.remove('active');
                     updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
+                    addMessage('[ERROR] Could not access microphone. Please check browser permissions.', 'system-msg');
                 }
             } else {
                 UI.callBtn.classList.remove('active');
@@ -789,13 +897,19 @@
         function playAudioBase64(base64) {
             try {
                 const ctx = getAudioContext();
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
 
                 let binary = atob(base64);
                 let buffer = new ArrayBuffer(binary.length);
                 let view = new DataView(buffer);
                 for (let i = 0; i < binary.length; i++) { view.setUint8(i, binary.charCodeAt(i)); }
 
-                const int16Array = new Int16Array(buffer);
+                let byteLen = buffer.byteLength - (buffer.byteLength % 2);
+                if (byteLen <= 0) return false;
+
+                const int16Array = new Int16Array(buffer, 0, byteLen / 2);
                 const audioBuffer = ctx.createBuffer(1, int16Array.length, 24000);
                 const channelData = audioBuffer.getChannelData(0);
 
@@ -806,7 +920,6 @@
 
                 if (aiAnalyser) {
                     source.connect(aiAnalyser);
-                    aiAnalyser.connect(ctx.destination);
                 } else {
                     source.connect(ctx.destination);
                 }
@@ -816,9 +929,18 @@
                 nextPlayTime = startTime + audioBuffer.duration;
 
                 activeSources.push(source);
-                source.onended = () => { activeSources = activeSources.filter(s => s !== source); };
+                setSpeakingState(true);
+
+                source.onended = () => {
+                    activeSources = activeSources.filter(s => s !== source);
+                    if (activeSources.length === 0) {
+                        setSpeakingState(false);
+                    }
+                };
+                return true;
             } catch (err) {
                 console.error("Error playing audio chunk:", err);
+                return false;
             }
         }
 
