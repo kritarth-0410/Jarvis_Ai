@@ -778,75 +778,146 @@
             };
         });
 
-        function handleLocalResponse(text) {
+        async function callGeminiRestAPI(userText) {
+            const key = localStorage.getItem('jarvis_api_key') || (UI.apiKeyInput ? UI.apiKeyInput.value.trim() : '');
             const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
-            const lower = text.toLowerCase();
 
-            if (lower.includes("schedule") || lower.includes("calendar") || lower.includes("free") || lower.includes("busy") || lower.includes("time") || lower.includes("slot")) {
-                fetch("http://127.0.0.1:5000/api/check_availability", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ date: new Date().toISOString() })
-                }).then(res => res.json()).then(data => {
-                    addToolCard(`🔍 J.A.R.V.I.S. Action: check_availability()\n${data.result}`);
-                    let resMsg = selectedLang === "Haryanvi"
-                        ? `भाई साहब, आज का कैलेंडर शेड्यूल देख लिया है: ${data.result}`
-                        : `Sir, I have checked your schedule: ${data.result}`;
-                    addMessage(resMsg, 'ai-msg');
-                    speakTextFallback(resMsg);
-                }).catch(err => {
-                    let reply = selectedLang === "Haryanvi" ? "भाई साहब, आपका कैलेंडर शेड्यूल चेक कर लिया है, आप फ्री हो!" : "Sir, your schedule is clear for today.";
-                    addMessage(reply, 'ai-msg');
-                    speakTextFallback(reply);
-                });
+            if (!key) {
+                const noKeyReply = selectedLang === "Haryanvi"
+                    ? "भाई साहब, Gemini API Key डालो! ऊपर स्टेटस बैज पर क्लिक करके अपनी API Key दर्ज करें।"
+                    : "Sir, please enter your Gemini API Key by tapping the status badge at the top.";
+                addMessage(noKeyReply, 'ai-msg');
+                speakTextFallback(noKeyReply);
+                UI.setupModal.classList.remove('hidden');
                 return;
             }
 
-            if (lower.includes("book") || lower.includes("meeting") || lower.includes("appointment")) {
-                fetch("http://127.0.0.1:5000/api/book_meeting", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ title: "J.A.R.V.I.S. Meeting", date_time: new Date().toISOString(), guest_email: "User" })
-                }).then(res => res.json()).then(data => {
-                    addToolCard(`⚙️ J.A.R.V.I.S. Action: book_meeting()\n${data.result}`);
-                    let resMsg = selectedLang === "Haryanvi"
-                        ? `भाई साहब, आपकी मीटिंग बुक हो गई है: ${data.result}`
-                        : `Sir, meeting has been successfully booked: ${data.result}`;
-                    addMessage(resMsg, 'ai-msg');
-                    speakTextFallback(resMsg);
-                }).catch(err => {
-                    let reply = selectedLang === "Haryanvi" ? "भाई साहब, आपकी मीटिंग बुक कर दी गई है!" : "Sir, meeting has been scheduled.";
-                    addMessage(reply, 'ai-msg');
-                    speakTextFallback(reply);
-                });
-                return;
-            }
+            const currentDate = new Date().toString();
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-            let reply = "";
+            let systemPrompt = "";
             if (selectedLang === "Haryanvi") {
-                if (lower.includes("ram") || lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-                    reply = "राम राम भाई साहब! J.A.R.V.I.S. ऑनलाइन है, बताओ के काम करना है?";
-                } else if (lower.includes("kaun") || lower.includes("who")) {
-                    reply = "मैं J.A.R.V.I.S. हूँ भाई साहब, आपका पर्सनल AI असिस्टेंट!";
-                } else {
-                    reply = `जी भाई साहब, आपकी बात सुन ली: "${text}"। J.A.R.V.I.S. आपकी सेवा में हाजिर है!`;
-                }
+                systemPrompt = `You are J.A.R.V.I.S., an elite AI assistant fluent in Haryanvi (हरियाणवी), Hindi, and English.
+                Respond in natural, authentic, polite, and witty Haryanvi (हरियाणवी बोली) mixed with clear English terms.
+                Use respectful Haryanvi terms like 'भाई', 'साहब', 'जी' naturally. Current time is ${currentDate} in ${timeZone}.
+                Keep responses concise, witty, and direct for spoken delivery.`;
             } else if (selectedLang === "Hinglish") {
-                if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-                    reply = "Hello Sir! J.A.R.V.I.S. online hai, bataiye kya help karu?";
-                } else {
-                    reply = `Ji Sir, main aapki command par kaam kar raha hu: "${text}".`;
-                }
+                systemPrompt = `You are J.A.R.V.I.S., an elite AI assistant fluent in Hinglish (Hindi + English).
+                Speak in smooth, natural Hinglish with a polite, intelligent, and witty tone. Use 'Sir' or 'Ji' respectfully.
+                Current time is ${currentDate} in ${timeZone}. Keep responses concise and spoken-friendly.`;
             } else {
-                if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-                    reply = "Online and at your service, Sir. How may I assist you today?";
-                } else {
-                    reply = `Understood, Sir. Processing your command: "${text}". Standing by for further instructions.`;
-                }
+                systemPrompt = `You are J.A.R.V.I.S., an elite AI voice assistant. Always address the user respectfully as 'Sir'.
+                Speak in a refined British accent tone: calm, composed, immensely intelligent, articulate, and witty.
+                Current time is ${currentDate} in ${timeZone}. Keep responses concise and voice-optimized.`;
             }
 
-            addMessage(reply, 'ai-msg');
-            speakTextFallback(reply);
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: userText }] }
+                ],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                tools: [{
+                    functionDeclarations: [
+                        {
+                            name: "check_availability",
+                            description: "Checks the user's calendar for busy slots on a given day.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: { date: { type: "STRING", description: "ISO 8601 date to check" } },
+                                required: ["date"]
+                            }
+                        },
+                        {
+                            name: "book_meeting",
+                            description: "Schedules a meeting on the calendar.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    title: { type: "STRING", description: "Meeting title" },
+                                    date_time: { type: "STRING", description: "ISO 8601 date and time" },
+                                    guest_email: { type: "STRING", description: "Guest email address" }
+                                },
+                                required: ["title", "date_time", "guest_email"]
+                            }
+                        }
+                    ]
+                }]
+            };
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (data.error) {
+                    console.error("Gemini REST API Error:", data.error);
+                    const errStr = data.error.message || "Invalid API Key";
+                    addMessage(`[ERROR] Gemini API Error: ${errStr}`, 'system-msg');
+                    speakTextFallback(`API Error: ${errStr}`);
+                    return;
+                }
+
+                const candidate = data.candidates?.[0];
+                if (candidate?.content?.parts) {
+                    for (const part of candidate.content.parts) {
+                        if (part.functionCall) {
+                            const call = part.functionCall;
+                            let endpoint = call.name === "book_meeting" ? "http://127.0.0.1:5000/api/book_meeting" : "http://127.0.0.1:5000/api/check_availability";
+                            addToolCard(`⚙️ J.A.R.V.I.S. Action: ${call.name}()\n↳ Args: ${JSON.stringify(call.args)}`);
+
+                            try {
+                                const toolRes = await fetch(endpoint, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(call.args)
+                                });
+                                const toolData = await toolRes.json();
+                                
+                                const followUpPayload = {
+                                    contents: [
+                                        { role: "user", parts: [{ text: userText }] },
+                                        candidate.content,
+                                        { role: "function", parts: [{ functionResponse: { name: call.name, response: { output: toolData.result } } }] }
+                                    ],
+                                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                                };
+
+                                const followUpRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(followUpPayload)
+                                });
+                                const followUpData = await followUpRes.json();
+                                const finalReply = followUpData.candidates?.[0]?.content?.parts?.[0]?.text || toolData.result;
+
+                                addMessage(finalReply, 'ai-msg');
+                                speakTextFallback(finalReply);
+                                return;
+                            } catch (toolErr) {
+                                console.error("Tool execution error:", toolErr);
+                                const errReply = selectedLang === "Haryanvi" ? "भाई साहब, लोकल API से कनेक्ट नहीं हो पाया।" : "Sir, could not reach local calendar bridge.";
+                                addMessage(errReply, 'ai-msg');
+                                speakTextFallback(errReply);
+                                return;
+                            }
+                        }
+
+                        if (part.text) {
+                            addMessage(part.text, 'ai-msg');
+                            speakTextFallback(part.text);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Gemini REST API fetch error:", error);
+                const fallbackReply = selectedLang === "Haryanvi" ? "भाई साहब, नेटवर्क कनेक्शन चेक करें।" : "Sir, please check your network connection.";
+                addMessage(fallbackReply, 'ai-msg');
+                speakTextFallback(fallbackReply);
+            }
         }
 
         function sendTextMessage() {
@@ -860,7 +931,7 @@
             currentTurnText = "";
 
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                handleLocalResponse(text);
+                callGeminiRestAPI(text);
                 return;
             }
 
