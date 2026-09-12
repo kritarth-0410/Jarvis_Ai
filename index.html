@@ -139,8 +139,14 @@
             height: 100%;
             object-fit: cover;
             border-radius: 50%;
-            filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.7));
+            filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.8));
             transition: filter 0.3s, transform 0.3s;
+            animation: reactor-slow-spin 25s linear infinite;
+        }
+
+        @keyframes reactor-slow-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .arc-reactor-btn:hover {
