@@ -1,17 +1,22 @@
-# Ignore environment variables and security credentials
+# JARVIS AI — Git Ignore Rules
+
+# Security Credentials & Local Environment
 .env
 token.json
+*.pem
+*.key
 
-# Ignore Python cache and virtual environment
+# Python Virtual Environments & Caches
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 venv/
 .venv/
+env/
 
-# Ignore step-by-step educational CLI scripts (optional standalone scripts)
-step1_connect.py
-step2_voice.py
-step3_transcription.py
-step4_booking_tool.py
-step5_e2e.py
-response.wav
+# IDE & OS Metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
