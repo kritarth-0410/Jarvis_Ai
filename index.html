@@ -516,8 +516,8 @@
                     window.speechSynthesis.resume();
                 }
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.0;
-                utterance.pitch = 0.95;
+                utterance.rate = 0.96; // Conversational human pace (natural, not robotic)
+                utterance.pitch = 0.98; // Warm human voice pitch
 
                 if (synthVoices.length === 0) {
                     synthVoices = window.speechSynthesis.getVoices();
@@ -526,14 +526,17 @@
                 const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
                 let preferredVoice = null;
 
-                if (selectedLang === "English") {
-                    preferredVoice = synthVoices.find(v => v.name.includes("UK") || v.name.includes("British") || v.name.includes("David") || v.name.includes("George") || v.lang.includes("en-GB"));
-                } else {
-                    preferredVoice = synthVoices.find(v => v.lang.includes("hi-IN") || v.name.includes("Hindi") || v.name.includes("Google हिन्दी"));
+                // Prioritize Natural / Neural Online voices in Chrome & Edge
+                preferredVoice = synthVoices.find(v => (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("Online")) && (v.lang.includes("en") || v.lang.includes("hi")));
+
+                if (!preferredVoice && selectedLang === "English") {
+                    preferredVoice = synthVoices.find(v => v.name.includes("UK") || v.name.includes("British") || v.name.includes("George") || v.name.includes("David") || v.name.includes("Google UK") || v.lang.includes("en-GB"));
+                } else if (!preferredVoice) {
+                    preferredVoice = synthVoices.find(v => v.lang.includes("hi-IN") || v.name.includes("Hindi") || v.name.includes("Google हिन्दी") || v.name.includes("Swara") || v.name.includes("Madhur"));
                 }
 
                 if (!preferredVoice) {
-                    preferredVoice = synthVoices.find(v => v.lang.startsWith("en"));
+                    preferredVoice = synthVoices.find(v => v.name.includes("Google") || v.lang.startsWith("en"));
                 }
 
                 if (preferredVoice) utterance.voice = preferredVoice;
@@ -595,31 +598,31 @@
                 if (selectedLang === "Haryanvi") {
                     systemPrompt = `You are J.A.R.V.I.S., an elite AI assistant fluent in Haryanvi (हरियाणवी), Hindi, and English.
                     
-                    PERSONALITY & LANGUAGE INSTRUCTIONS:
-                    1. Respond in natural, authentic, polite, and witty Haryanvi (हरियाणवी बोली) mixed with clear English terms when appropriate. Use respectful Haryanvi terms like 'भाई', 'साहब', 'जी' naturally.
-                    2. Maintain J.A.R.V.I.S.'s signature intelligence, confidence, and eager-to-help demeanor.
+                    VOICE & EXPRESSION INSTRUCTIONS:
+                    1. Speak in a warm, expressive, highly natural human voice with realistic pauses, natural inflections, and authentic Haryanvi (हरियाणवी बोली) phrasing. Avoid sounding robotic, monotone, or artificial.
+                    2. Use respectful Haryanvi terms like 'भाई', 'साहब', 'जी' naturally with warmth and confidence.
                     3. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
-                    4. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone.
-                    5. Keep spoken responses concise, witty, and voice-optimized in Haryanvi.`;
+                    4. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking.
+                    5. Keep spoken responses concise, lively, expressive, and voice-optimized in Haryanvi.`;
                 } else if (selectedLang === "Hinglish") {
                     systemPrompt = `You are J.A.R.V.I.S., an elite AI assistant fluent in Hinglish (Hindi + English).
                     
-                    PERSONALITY & LANGUAGE INSTRUCTIONS:
-                    1. Speak in smooth, natural Hinglish (Hindi mixed with English) with a polite, intelligent, and witty tone. Use 'Sir' or 'Ji' respectfully.
-                    2. Maintain J.A.R.V.I.S.'s signature confidence and helpful demeanor.
+                    VOICE & EXPRESSION INSTRUCTIONS:
+                    1. Speak in smooth, natural, warm Hinglish (Hindi mixed with English) with realistic human intonation and cadence. Never sound robotic or flat. Use 'Sir' or 'Ji' naturally.
+                    2. Maintain J.A.R.V.I.S.'s signature intelligence, warmth, and eager-to-help tone.
                     3. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
                     4. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking.
-                    5. Keep spoken responses concise and voice-optimized in Hinglish.`;
+                    5. Keep spoken responses concise, human-like, and voice-optimized.`;
                 } else {
                     systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite, highly sophisticated AI voice assistant.
                     
-                    PERSONALITY & VOICE INSTRUCTIONS:
-                    1. Always address the user respectfully and naturally as 'Sir' (or 'Ma'am' if appropriate).
-                    2. Speak in a refined British accent tone: calm, composed, immensely intelligent, articulate, and subtly witty with dry humor.
-                    3. Always remain polite, efficient, and eager to assist with utmost precision.
+                    VOICE & EXPRESSION INSTRUCTIONS:
+                    1. Always address the user respectfully as 'Sir' (or 'Ma'am' if appropriate).
+                    2. Speak in a refined, natural British voice: calm, composed, warm, articulate, immensely intelligent, and subtly witty. Do NOT sound robotic or monotonous.
+                    3. Speak with realistic human cadence, natural breathing pauses, and expressive intonation.
                     4. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
-                    5. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking.
-                    6. Keep spoken responses concise, elegant, and voice-optimized.`;
+                    5. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking.
+                    6. Keep spoken responses elegant, warm, concise, and voice-optimized.`;
                 }
 
                 ws.send(JSON.stringify({
