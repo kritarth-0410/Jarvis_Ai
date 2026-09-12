@@ -879,14 +879,54 @@
             if (e.key === 'Enter') sendTextMessage();
         });
 
+        let recognition = null;
+        function initSpeechRecognition() {
+            if (('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && !recognition) {
+                const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRec();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
+                recognition.lang = (selectedLang === "Haryanvi" || selectedLang === "Hinglish") ? "hi-IN" : "en-US";
+
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    if (finalTranscript.trim()) {
+                        console.log("🎤 Speech Recognition Output:", finalTranscript);
+                        UI.textInput.value = finalTranscript;
+                        sendTextMessage();
+                    }
+                };
+
+                recognition.onerror = (e) => {
+                    console.warn("SpeechRecognition notice:", e.error);
+                };
+            }
+        }
+
         UI.callBtn.addEventListener('click', async () => {
             unlockAudio();
+            initSpeechRecognition();
             isCallActive = !isCallActive;
 
             if (isCallActive) {
                 UI.callBtn.classList.add('active');
                 updateStatus('LISTENING...', 'live');
                 addMessage('[J.A.R.V.I.S.] Arc Reactor active. Audio sensors listening, Sir.', 'system-msg');
+
+                if (recognition) {
+                    try {
+                        const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
+                        recognition.lang = (selectedLang === "Haryanvi" || selectedLang === "Hinglish") ? "hi-IN" : "en-US";
+                        recognition.start();
+                    } catch(e) {}
+                }
 
                 try {
                     const ctx = getAudioContext();
@@ -907,10 +947,11 @@
                     scriptProcessor.onaudioprocess = (e) => {
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             const float32Data = e.inputBuffer.getChannelData(0);
+                            const sampleRate = ctx.sampleRate || 24000;
                             ws.send(JSON.stringify({
                                 realtimeInput: {
                                     mediaChunks: [
-                                        { mimeType: "audio/pcm;rate=16000", data: float32ToBase64(float32Data) }
+                                        { mimeType: `audio/pcm;rate=${sampleRate}`, data: float32ToBase64(float32Data) }
                                     ]
                                 }
                             }));
@@ -921,14 +962,20 @@
                     scriptProcessor.connect(ctx.destination);
 
                 } catch (err) {
+                    console.error("Microphone access error:", err);
                     isCallActive = false;
                     UI.callBtn.classList.remove('active');
-                    updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
+                    updateStatus('J.A.R.V.I.S. ONLINE', 'live');
+                    addMessage('[ERROR] Could not access microphone. Please allow microphone permissions in browser.', 'system-msg');
                 }
             } else {
                 UI.callBtn.classList.remove('active');
                 UI.orbContainer.classList.remove('speaking-mode');
                 updateStatus('STANDBY', 'muted');
+
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                }
 
                 if (visualizerId) cancelAnimationFrame(visualizerId);
                 UI.callBtn.style.setProperty('--mic-scale', '1');
