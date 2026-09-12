@@ -390,10 +390,8 @@
 
             <select id="voiceSelect" class="voice-select">
                 <option value="Charon" selected>🎙️ Voice: Charon (J.A.R.V.I.S. Deep Male)</option>
+                <option value="Fenrir">🎙️ Voice: Fenrir (Resonant Deep Male)</option>
                 <option value="Puck">🎙️ Voice: Puck (Energetic Male)</option>
-                <option value="Fenrir">🎙️ Voice: Fenrir (Resonant Male)</option>
-                <option value="Aoede">🎙️ Voice: Aoede (Warm Female)</option>
-                <option value="Kore">🎙️ Voice: Kore (Calm Female)</option>
             </select>
 
             <button id="startSessionBtn" class="btn-start">INITIALIZE J.A.R.V.I.S.</button>
@@ -517,32 +515,40 @@
                 }
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 1.0;
-                utterance.pitch = 0.95;
+                utterance.pitch = 0.92; // Deep human male pitch
 
                 if (synthVoices.length === 0) {
                     synthVoices = window.speechSynthesis.getVoices();
                 }
 
+                // Strictly filter for male voices (exclude female voices)
+                const maleVoices = synthVoices.filter(v => 
+                    !v.name.includes("Female") && 
+                    !v.name.includes("Zira") && 
+                    !v.name.includes("Hazel") && 
+                    !v.name.includes("Susan") && 
+                    !v.name.includes("Heera") && 
+                    !v.name.includes("Kalpana") && 
+                    !v.name.includes("Swara")
+                );
+
                 const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
                 let preferredVoice = null;
 
-                // Priority 1: British / J.A.R.V.I.S. Male Voice
                 if (selectedLang === "English") {
-                    preferredVoice = synthVoices.find(v => v.name.includes("UK Male") || v.name.includes("David") || v.name.includes("George") || v.name.includes("British Male") || v.name.includes("Google UK English Male") || v.lang.includes("en-GB"));
+                    preferredVoice = maleVoices.find(v => v.name.includes("David") || v.name.includes("George") || v.name.includes("UK Male") || v.name.includes("British Male") || v.name.includes("Google UK English Male") || v.lang.includes("en-GB"));
                 }
                 
-                // Priority 2: Indian / Hindi / Haryanvi Voice
                 if (!preferredVoice && (selectedLang === "Haryanvi" || selectedLang === "Hinglish")) {
-                    preferredVoice = synthVoices.find(v => v.name.includes("Madhur") || v.name.includes("Swara") || v.name.includes("Google हिन्दी") || v.lang.includes("hi-IN"));
-                }
-
-                // Priority 3: Any Natural Male Voice
-                if (!preferredVoice) {
-                    preferredVoice = synthVoices.find(v => (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("Male")) && (v.lang.includes("en") || v.lang.includes("hi")));
+                    preferredVoice = maleVoices.find(v => v.name.includes("Madhur") || v.name.includes("Google हिन्दी") || v.lang.includes("hi-IN"));
                 }
 
                 if (!preferredVoice) {
-                    preferredVoice = synthVoices.find(v => v.lang.startsWith("en"));
+                    preferredVoice = maleVoices.find(v => v.name.includes("Male") || v.lang.startsWith("en"));
+                }
+
+                if (!preferredVoice && synthVoices.length > 0) {
+                    preferredVoice = synthVoices[0];
                 }
 
                 if (preferredVoice) utterance.voice = preferredVoice;
