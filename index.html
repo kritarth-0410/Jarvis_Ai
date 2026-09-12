@@ -4,14 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS AI — Voice Assistant</title>
+    <title>J.A.R.V.I.S. AI — Stark Industries Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --surface: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
+            --bg-color: #050a12;
+            --surface: rgba(14, 23, 38, 0.85);
+            --surface-border: rgba(0, 240, 255, 0.25);
+            --text-main: #f0f9ff;
+            --text-muted: #64748b;
+            --accent: #00f0ff;
+            --accent-glow: rgba(0, 240, 255, 0.6);
             --danger: #ef4444;
             --success: #10b981;
         }
@@ -20,27 +25,66 @@
             margin: 0;
             padding: 0;
             background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.12) 0%, transparent 60%),
+                linear-gradient(180deg, #050a12 0%, #03070d 100%);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .hud-header {
+            position: absolute;
+            top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            text-align: center;
+        }
+
+        .hud-brand {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .hud-sub {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.7rem;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            opacity: 0.85;
         }
 
         .status-badge {
             position: absolute;
-            top: 2rem;
+            top: 5.5rem;
             background: var(--surface);
-            padding: 0.5rem 1rem;
+            backdrop-filter: blur(12px);
+            padding: 0.4rem 1.2rem;
             border-radius: 999px;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            border: 1px solid #334155;
+            gap: 0.6rem;
+            border: 1px solid var(--surface-border);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
         }
 
         .dot {
@@ -57,40 +101,51 @@
 
         .dot.speaking {
             background: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
+            box-shadow: 0 0 12px var(--accent);
         }
 
         .orb-container {
             position: relative;
-            width: 150px;
-            height: 150px;
+            width: 170px;
+            height: 170px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-top: 5rem;
             margin-bottom: 2rem;
         }
 
         .call-button {
-            width: 100px;
-            height: 100px;
+            width: 110px;
+            height: 110px;
             border-radius: 50%;
-            border: none;
-            background: var(--surface);
-            color: var(--text-main);
-            font-size: 2rem;
+            border: 2px solid var(--accent);
+            background: radial-gradient(circle, #0e1726 0%, #060b13 100%);
+            color: var(--accent);
+            font-size: 2.2rem;
             cursor: pointer;
             z-index: 10;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            transition: background 0.3s;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* The visualizer will dynamically inject scale values here */
+        .call-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 45px rgba(0, 240, 255, 0.6), inset 0 0 30px rgba(0, 240, 255, 0.4);
+        }
+
         .call-button.active {
-            background: var(--danger);
+            background: radial-gradient(circle, #ef4444 0%, #7f1d1d 100%);
+            border-color: #fca5a5;
             color: white;
+            box-shadow: 0 0 35px rgba(239, 68, 68, 0.6);
             transform: scale(var(--mic-scale, 1));
         }
 
+        /* Arc Reactor Visualizer Rings */
         .ring {
             position: absolute;
             width: 100%;
@@ -99,67 +154,82 @@
             border: 2px solid var(--accent);
             opacity: 0;
             pointer-events: none;
+            box-shadow: 0 0 25px var(--accent-glow);
             transform: scale(var(--ai-scale, 1));
             transition: transform 0.05s ease-out, opacity 0.1s;
         }
 
         .speaking-mode .ring {
-            opacity: 0.8;
+            opacity: 0.85;
+            animation: pulse-ring 2s infinite linear;
+        }
+
+        @keyframes pulse-ring {
+            0% { border-color: #00f0ff; }
+            50% { border-color: #38bdf8; }
+            100% { border-color: #00f0ff; }
         }
 
         .transcript-container {
             width: 90%;
-            max-width: 500px;
+            max-width: 540px;
             height: 300px;
             background: var(--surface);
+            backdrop-filter: blur(16px);
             border-radius: 16px;
-            padding: 1rem;
+            padding: 1.25rem;
             overflow-y: auto;
-            border: 1px solid #334155;
+            border: 1px solid var(--surface-border);
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.85rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
         }
 
         .message {
-            font-size: 0.95rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
             line-height: 1.5;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 1.1rem;
             border-radius: 12px;
-            max-width: 80%;
+            max-width: 85%;
             width: fit-content;
             word-wrap: break-word;
         }
 
         .user-msg {
-            background: #334155;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             align-self: flex-end;
-            color: white;
+            color: #f1f5f9;
             border-bottom-right-radius: 4px;
         }
 
         .ai-msg {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
             align-self: flex-start;
-            color: #60a5fa;
+            color: #38bdf8;
             border-bottom-left-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.05);
         }
 
         .system-msg {
             align-self: center;
-            font-size: 0.8rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.78rem;
             color: var(--text-muted);
-            font-style: italic;
+            letter-spacing: 0.5px;
         }
 
         .tool-card {
             align-self: center;
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(16, 185, 129, 0.08);
             border: 1px dashed var(--success);
             color: #34d399;
-            font-family: monospace;
-            font-size: 0.85rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.82rem;
             border-radius: 8px;
             padding: 0.75rem 1rem;
             width: 90%;
@@ -170,7 +240,8 @@
         .setup-modal {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(3, 7, 13, 0.96);
+            backdrop-filter: blur(20px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -182,33 +253,58 @@
             display: none;
         }
 
+        .modal-card {
+            background: rgba(14, 23, 38, 0.9);
+            border: 1px solid var(--surface-border);
+            padding: 2.5rem;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.15);
+            max-width: 380px;
+            width: 90%;
+        }
+
         .api-input, .voice-select {
             padding: 0.85rem 1rem;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background: #0f172a;
+            border-radius: 10px;
+            border: 1px solid var(--surface-border);
+            background: #060b13;
             color: white;
-            width: 320px;
-            margin-bottom: 1rem;
-            font-size: 0.95rem;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 1.25rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .api-input:focus, .voice-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
         }
 
         .btn-start {
-            padding: 0.85rem 2rem;
-            border-radius: 8px;
-            background: var(--accent);
-            color: white;
+            padding: 0.9rem 2rem;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #00f0ff 0%, #0284c7 100%);
+            color: #03070d;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            letter-spacing: 1.5px;
             border: none;
-            font-weight: bold;
-            font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-            width: 320px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
         }
 
         .btn-start:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.7);
         }
     </style>
 </head>
@@ -216,32 +312,34 @@
 <body>
 
     <div id="setupModal" class="setup-modal">
-        <h2 style="margin-bottom: 0.5rem; color: #60a5fa;">🤖 J.A.R.V.I.S. Voice AI</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Gemini Live Real-time Assistant</p>
-        
-        <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
-        
-        <select id="voiceSelect" class="voice-select">
-            <option value="Charon" selected>🎙️ Voice: Charon (J.A.R.V.I.S. Deep Male)</option>
-            <option value="Puck">🎙️ Voice: Puck (Energetic Male)</option>
-            <option value="Fenrir">🎙️ Voice: Fenrir (Resonant Male)</option>
-            <option value="Aoede">🎙️ Voice: Aoede (Warm Female)</option>
-            <option value="Kore">🎙️ Voice: Kore (Calm Female)</option>
-        </select>
+        <div class="modal-card">
+            <h2 style="font-family: 'Orbitron', sans-serif; margin: 0 0 0.4rem 0; color: var(--accent); font-size: 1.6rem; letter-spacing: 2px;">🤖 J.A.R.V.I.S.</h2>
+            <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.75rem; letter-spacing: 1px;">STARK INDUSTRIES AI SYSTEM</p>
+            
+            <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
+            
+            <select id="voiceSelect" class="voice-select">
+                <option value="Charon" selected>🎙️ Voice: Charon (J.A.R.V.I.S. Deep Male)</option>
+                <option value="Puck">🎙️ Voice: Puck (Energetic Male)</option>
+                <option value="Fenrir">🎙️ Voice: Fenrir (Resonant Male)</option>
+                <option value="Aoede">🎙️ Voice: Aoede (Warm Female)</option>
+                <option value="Kore">🎙️ Voice: Kore (Calm Female)</option>
+            </select>
 
-        <button id="startSessionBtn" class="btn-start">Connect to J.A.R.V.I.S.</button>
+            <button id="startSessionBtn" class="btn-start">INITIALIZE J.A.R.V.I.S.</button>
+        </div>
     </div>
 
-    <div style="position: absolute; top: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
-        <h1 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #60a5fa; letter-spacing: 1.5px; display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.4rem;">🤖</span> JARVIS AI
+    <div class="hud-header">
+        <h1 class="hud-brand">
+            <span>⚡</span> J.A.R.V.I.S.
         </h1>
-        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">Voice Assistant</span>
+        <span class="hud-sub">Stark Industries AI Voice Protocol</span>
     </div>
 
-    <div class="status-badge" id="statusBadge" style="top: 5rem;">
+    <div class="status-badge" id="statusBadge">
         <div class="dot" id="statusDot"></div>
-        <span id="statusText">Disconnected</span>
+        <span id="statusText">SYSTEM STANDBY</span>
     </div>
 
     <div class="orb-container" id="orbContainer">
@@ -250,7 +348,7 @@
     </div>
 
     <div class="transcript-container" id="transcript">
-        <div class="message system-msg">Waiting to connect...</div>
+        <div class="message system-msg">[SYSTEM] Awaiting user initialization...</div>
     </div>
 
     <script>
@@ -285,26 +383,31 @@
         UI.startBtn.addEventListener('click', () => {
             const key = UI.apiKeyInput.value.trim();
             const selectedVoice = UI.voiceSelect ? UI.voiceSelect.value : "Charon";
-            if (!key) return alert("API Key is required.");
+            if (!key) return alert("API Key is required to power J.A.R.V.I.S.");
 
             UI.setupModal.classList.add('hidden');
-            updateStatus('Connecting...', 'speaking');
-            addMessage('Initializing connection to J.A.R.V.I.S....', 'system-msg');
+            updateStatus('CONNECTING...', 'speaking');
+            addMessage('[SYSTEM] Establishing secure neural stream to J.A.R.V.I.S. core...', 'system-msg');
 
             const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                updateStatus('Ready', 'muted');
-                addMessage(`J.A.R.V.I.S. online (${selectedVoice} voice). Tap the mic to speak.`, 'system-msg');
+                updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
+                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor mic to speak.`, 'system-msg');
 
-                // 🧠 CONTEXT INJECTION: J.A.R.V.I.S. Persona + Timezone
+                // 🧠 CONTEXT INJECTION: Authentic Tony Stark's J.A.R.V.I.S. Persona
                 const currentDate = new Date().toString();
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite AI assistant inspired by Iron Man's JARVIS. 
-                Speak in a refined, polite, articulate, and subtly witty tone with impeccable manners (addressing the user respectfully as 'Sir' or 'Ma'am' when appropriate).
-                CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone. 
-                You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking a meeting to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone. Keep responses concise, natural, and voice-optimized.`;
+                const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's iconic, highly sophisticated AI assistant.
+                
+                PERSONALITY & VOICE INSTRUCTIONS:
+                1. Always address the user respectfully and naturally as 'Sir' (or 'Ma'am' if appropriate).
+                2. Speak in a refined British accent tone: calm, composed, immensely intelligent, articulate, and subtly witty with dry humor.
+                3. Always remain polite, efficient, and eager to assist with Stark Industries precision.
+                4. CRITICAL CONTEXT: The current date and time is ${currentDate}. The user is in the ${timeZone} timezone.
+                5. You manage schedule checking and meeting bookings via calendar tools. Always check availability first before booking to prevent double-booking. When booking or checking, format dates strictly to ISO 8601 offset to the user's timezone.
+                6. Keep spoken responses concise, elegant, and voice-optimized like the real movie J.A.R.V.I.S.`;
 
                 ws.send(JSON.stringify({
                     setup: {
@@ -360,13 +463,12 @@
                         let endpoint = "";
                         let visualOutput = "";
 
-                        // Handle logic for both tools dynamically
                         if (call.name === "book_meeting") {
                             endpoint = "http://127.0.0.1:5000/api/book_meeting";
-                            visualOutput = `⚙️ Action: book_meeting()\n↳ Title: ${args.title}\n↳ Time: ${args.date_time}`;
+                            visualOutput = `⚙️ J.A.R.V.I.S. Action: book_meeting()\n↳ Title: ${args.title}\n↳ Time: ${args.date_time}`;
                         } else if (call.name === "check_availability") {
                             endpoint = "http://127.0.0.1:5000/api/check_availability";
-                            visualOutput = `🔍 Action: check_availability()\n↳ Date: ${args.date}`;
+                            visualOutput = `🔍 J.A.R.V.I.S. Action: check_availability()\n↳ Date: ${args.date}`;
                         }
 
                         addToolCard(visualOutput);
@@ -430,14 +532,13 @@
             if (isCallActive) {
                 UI.callBtn.classList.add('active');
                 UI.callBtn.innerHTML = '⏹️';
-                updateStatus('Listening...', 'live');
-                addMessage('Microphone active. Say hello!', 'system-msg');
+                updateStatus('LISTENING...', 'live');
+                addMessage('[J.A.R.V.I.S.] Audio sensor active. I am listening, Sir.', 'system-msg');
 
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
                     nextPlayTime = audioContext.currentTime;
 
-                    // Setup Visualizers
                     micAnalyser = audioContext.createAnalyser();
                     aiAnalyser = audioContext.createAnalyser();
                     micAnalyser.fftSize = 256;
@@ -449,7 +550,7 @@
                     });
 
                     const source = audioContext.createMediaStreamSource(mediaStream);
-                    source.connect(micAnalyser); // Connect Mic to Analyser
+                    source.connect(micAnalyser);
 
                     scriptProcessor = audioContext.createScriptProcessor(1024, 1, 1);
                     scriptProcessor.onaudioprocess = (e) => {
@@ -470,13 +571,13 @@
                     isCallActive = false;
                     UI.callBtn.classList.remove('active');
                     UI.callBtn.innerHTML = '🎙️';
-                    updateStatus('Ready', 'muted');
+                    updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
                 }
             } else {
                 UI.callBtn.classList.remove('active');
                 UI.callBtn.innerHTML = '🎙️';
                 UI.orbContainer.classList.remove('speaking-mode');
-                updateStatus('Call Ended', 'muted');
+                updateStatus('STANDBY', 'muted');
 
                 if (visualizerId) cancelAnimationFrame(visualizerId);
                 UI.callBtn.style.setProperty('--mic-scale', '1');
@@ -488,7 +589,6 @@
             }
         });
 
-        // 🎵 VISUALIZER ENGINE
         function startVisualizer() {
             const micData = new Uint8Array(micAnalyser.frequencyBinCount);
             const aiData = new Uint8Array(aiAnalyser.frequencyBinCount);
@@ -499,11 +599,9 @@
                 micAnalyser.getByteFrequencyData(micData);
                 aiAnalyser.getByteFrequencyData(aiData);
 
-                // Calculate average volume
                 const micVol = micData.reduce((a, b) => a + b, 0) / micData.length;
                 const aiVol = aiData.reduce((a, b) => a + b, 0) / aiData.length;
 
-                // Map volume (0-255) to scale factor (1.0 to 1.3)
                 const micScale = 1 + (micVol / 255) * 0.15;
                 const aiScale = 1 + (aiVol / 255) * 0.8;
 
@@ -545,7 +643,6 @@
             const source = audioContext.createBufferSource();
             source.buffer = audioBuffer;
 
-            // Connect AI audio to our Visualizer Analyser Node
             source.connect(aiAnalyser);
             aiAnalyser.connect(audioContext.destination);
 
@@ -567,9 +664,9 @@
         }
         function setSpeakingState(isSpeaking) {
             if (isSpeaking) {
-                UI.orbContainer.classList.add('speaking-mode'); updateStatus('Agent Speaking...', 'speaking');
+                UI.orbContainer.classList.add('speaking-mode'); updateStatus('J.A.R.V.I.S. SPEAKING', 'speaking');
             } else {
-                UI.orbContainer.classList.remove('speaking-mode'); if (isCallActive) updateStatus('Listening...', 'live');
+                UI.orbContainer.classList.remove('speaking-mode'); if (isCallActive) updateStatus('LISTENING...', 'live');
             }
         }
         function addMessage(text, typeClass, isChunk = false) {
