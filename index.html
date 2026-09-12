@@ -112,7 +112,7 @@
             align-items: center;
             justify-content: center;
             margin-top: 5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .arc-reactor-btn {
@@ -168,7 +168,6 @@
             filter: drop-shadow(0 0 22px rgba(239, 68, 68, 1)) hue-rotate(130deg);
         }
 
-        /* Arc Reactor Visualizer Ring */
         .ring {
             position: absolute;
             width: 100%;
@@ -196,7 +195,7 @@
         .transcript-container {
             width: 90%;
             max-width: 540px;
-            height: 300px;
+            height: 260px;
             background: var(--surface);
             backdrop-filter: blur(16px);
             border-radius: 16px;
@@ -207,6 +206,47 @@
             flex-direction: column;
             gap: 0.85rem;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .input-bar {
+            width: 90%;
+            max-width: 540px;
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--surface-border);
+            background: rgba(6, 11, 19, 0.9);
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .btn-send {
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            background: var(--accent);
+            color: #03070d;
+            border: none;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-send:hover {
+            background: #38bdf8;
         }
 
         .message {
@@ -376,6 +416,11 @@
         <div class="message system-msg">[SYSTEM] Awaiting user initialization...</div>
     </div>
 
+    <div class="input-bar">
+        <input type="text" id="textInput" class="text-input" placeholder="Type a message or press Arc Reactor to speak...">
+        <button id="sendBtn" class="btn-send">SEND</button>
+    </div>
+
     <script>
         const UI = {
             setupModal: document.getElementById('setupModal'),
@@ -386,7 +431,9 @@
             statusText: document.getElementById('statusText'),
             statusDot: document.getElementById('statusDot'),
             transcript: document.getElementById('transcript'),
-            orbContainer: document.getElementById('orbContainer')
+            orbContainer: document.getElementById('orbContainer'),
+            textInput: document.getElementById('textInput'),
+            sendBtn: document.getElementById('sendBtn')
         };
 
         let isCallActive = false;
@@ -400,7 +447,6 @@
         let activeRole = null;
         let activeSources = [];
 
-        // Visualizer Nodes
         let micAnalyser = null;
         let aiAnalyser = null;
         let visualizerId = null;
@@ -412,15 +458,15 @@
 
             UI.setupModal.classList.add('hidden');
             updateStatus('CONNECTING...', 'speaking');
-            addMessage('[SYSTEM] Establishing secure neural stream to J.A.R.V.I.S. core...', 'system-msg');
+            addMessage('[SYSTEM] Establishing neural link to J.A.R.V.I.S. core...', 'system-msg');
 
-            const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
+            const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${key}`;
             ws = new WebSocket(wsUrl);
 
             ws.onerror = (err) => {
                 console.error("WebSocket Error:", err);
                 updateStatus('CONNECTION ERROR', 'muted');
-                addMessage('[ERROR] Could not connect to Gemini Live API. Please check your API key.', 'system-msg');
+                addMessage('[ERROR] Could not connect to Gemini Live API. Please verify your API Key.', 'system-msg');
             };
 
             ws.onclose = (e) => {
@@ -430,9 +476,8 @@
 
             ws.onopen = () => {
                 updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
-                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor to activate audio input.`, 'system-msg');
+                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor or type below to command.`, 'system-msg');
 
-                // 🧠 CONTEXT INJECTION: J.A.R.V.I.S. Assistant Persona
                 const currentDate = new Date().toString();
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an elite, highly sophisticated AI voice assistant.
@@ -449,7 +494,7 @@
                     setup: {
                         model: "models/gemini-2.0-flash-exp",
                         generationConfig: {
-                            responseModalities: ["AUDIO"],
+                            responseModalities: ["AUDIO", "TEXT"],
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
                         },
                         systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -486,80 +531,115 @@
             };
 
             ws.onmessage = async (event) => {
-                const msg = JSON.parse(await event.data.text ? await event.data.text() : event.data);
-
-                if (msg.toolCall) {
-                    const functionCalls = msg.toolCall.functionCalls;
-                    const responses = [];
-
-                    for (const call of functionCalls) {
-                        const args = call.args;
-                        console.log("🎯 Tool Triggered:", call.name, args);
-
-                        let endpoint = "";
-                        let visualOutput = "";
-
-                        if (call.name === "book_meeting") {
-                            endpoint = "http://127.0.0.1:5000/api/book_meeting";
-                            visualOutput = `⚙️ J.A.R.V.I.S. Action: book_meeting()\n↳ Title: ${args.title}\n↳ Time: ${args.date_time}`;
-                        } else if (call.name === "check_availability") {
-                            endpoint = "http://127.0.0.1:5000/api/check_availability";
-                            visualOutput = `🔍 J.A.R.V.I.S. Action: check_availability()\n↳ Date: ${args.date}`;
-                        }
-
-                        addToolCard(visualOutput);
-
-                        try {
-                            const res = await fetch(endpoint, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(args)
-                            });
-                            const data = await res.json();
-                            responses.push({ id: call.id, name: call.name, response: { output: data.result } });
-                        } catch (error) {
-                            console.error("Backend Error:", error);
-                            responses.push({ id: call.id, name: call.name, response: { output: "Error connected to local Python API." } });
-                        }
+                try {
+                    let rawText = "";
+                    if (typeof event.data === "string") {
+                        rawText = event.data;
+                    } else if (event.data instanceof Blob) {
+                        rawText = await event.data.text();
+                    } else if (event.data instanceof ArrayBuffer) {
+                        rawText = new TextDecoder().decode(event.data);
                     }
 
-                    ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
-                }
+                    const msg = JSON.parse(rawText);
 
-                if (msg.serverContent) {
-                    const content = msg.serverContent;
+                    if (msg.toolCall) {
+                        const functionCalls = msg.toolCall.functionCalls;
+                        const responses = [];
 
-                    if (content.interrupted) {
-                        setSpeakingState(false);
-                        nextPlayTime = audioContext ? audioContext.currentTime : 0;
-                        activeBubble = null;
-                        activeSources.forEach(source => { try { source.stop(); } catch (e) { } });
-                        activeSources = [];
-                    }
+                        for (const call of functionCalls) {
+                            const args = call.args;
+                            console.log("🎯 Tool Triggered:", call.name, args);
 
-                    if (content.inputTranscription && content.inputTranscription.text) {
-                        addMessage(content.inputTranscription.text + " ", 'user-msg', true);
-                    }
+                            let endpoint = "";
+                            let visualOutput = "";
 
-                    if (content.outputTranscription && content.outputTranscription.text) {
-                        setSpeakingState(true);
-                        addMessage(content.outputTranscription.text, 'ai-msg', true);
-                    }
+                            if (call.name === "book_meeting") {
+                                endpoint = "http://127.0.0.1:5000/api/book_meeting";
+                                visualOutput = `⚙️ J.A.R.V.I.S. Action: book_meeting()\n↳ Title: ${args.title}\n↳ Time: ${args.date_time}`;
+                            } else if (call.name === "check_availability") {
+                                endpoint = "http://127.0.0.1:5000/api/check_availability";
+                                visualOutput = `🔍 J.A.R.V.I.S. Action: check_availability()\n↳ Date: ${args.date}`;
+                            }
 
-                    if (content.modelTurn) {
-                        for (const part of content.modelTurn.parts) {
-                            if (part.inlineData) {
-                                playAudioBase64(part.inlineData.data);
+                            addToolCard(visualOutput);
+
+                            try {
+                                const res = await fetch(endpoint, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(args)
+                                });
+                                const data = await res.json();
+                                responses.push({ id: call.id, name: call.name, response: { output: data.result } });
+                            } catch (error) {
+                                console.error("Backend Error:", error);
+                                responses.push({ id: call.id, name: call.name, response: { output: "Error connected to local Python API." } });
                             }
                         }
+
+                        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
                     }
 
-                    if (content.turnComplete) {
-                        setSpeakingState(false);
-                        activeBubble = null;
+                    if (msg.serverContent) {
+                        const content = msg.serverContent;
+
+                        if (content.interrupted) {
+                            setSpeakingState(false);
+                            nextPlayTime = audioContext ? audioContext.currentTime : 0;
+                            activeBubble = null;
+                            activeSources.forEach(source => { try { source.stop(); } catch (e) { } });
+                            activeSources = [];
+                        }
+
+                        if (content.inputTranscription && content.inputTranscription.text) {
+                            addMessage(content.inputTranscription.text + " ", 'user-msg', true);
+                        }
+
+                        if (content.outputTranscription && content.outputTranscription.text) {
+                            setSpeakingState(true);
+                            addMessage(content.outputTranscription.text, 'ai-msg', true);
+                        }
+
+                        if (content.modelTurn) {
+                            for (const part of content.modelTurn.parts) {
+                                if (part.inlineData) {
+                                    playAudioBase64(part.inlineData.data);
+                                }
+                            }
+                        }
+
+                        if (content.turnComplete) {
+                            setSpeakingState(false);
+                            activeBubble = null;
+                        }
                     }
+                } catch (parseError) {
+                    console.error("Error handling WS message:", parseError);
                 }
             };
+        });
+
+        function sendTextMessage() {
+            const text = UI.textInput.value.trim();
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            addMessage(text, 'user-msg');
+            UI.textInput.value = '';
+
+            ws.send(JSON.stringify({
+                clientContent: {
+                    turns: [
+                        { role: "user", parts: [{ text: text }] }
+                    ],
+                    turnComplete: true
+                }
+            }));
+        }
+
+        UI.sendBtn.addEventListener('click', sendTextMessage);
+        UI.textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendTextMessage();
         });
 
         UI.callBtn.addEventListener('click', async () => {
@@ -568,7 +648,7 @@
             if (isCallActive) {
                 UI.callBtn.classList.add('active');
                 updateStatus('LISTENING...', 'live');
-                addMessage('[J.A.R.V.I.S.] Arc Reactor active. I am listening, Sir.', 'system-msg');
+                addMessage('[J.A.R.V.I.S.] Arc Reactor active. Audio sensors listening, Sir.', 'system-msg');
 
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
