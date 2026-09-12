@@ -778,21 +778,91 @@
             };
         });
 
+        function handleLocalResponse(text) {
+            const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
+            const lower = text.toLowerCase();
+
+            if (lower.includes("schedule") || lower.includes("calendar") || lower.includes("free") || lower.includes("busy") || lower.includes("time") || lower.includes("slot")) {
+                fetch("http://127.0.0.1:5000/api/check_availability", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ date: new Date().toISOString() })
+                }).then(res => res.json()).then(data => {
+                    addToolCard(`🔍 J.A.R.V.I.S. Action: check_availability()\n${data.result}`);
+                    let resMsg = selectedLang === "Haryanvi"
+                        ? `भाई साहब, आज का कैलेंडर शेड्यूल देख लिया है: ${data.result}`
+                        : `Sir, I have checked your schedule: ${data.result}`;
+                    addMessage(resMsg, 'ai-msg');
+                    speakTextFallback(resMsg);
+                }).catch(err => {
+                    let reply = selectedLang === "Haryanvi" ? "भाई साहब, आपका कैलेंडर शेड्यूल चेक कर लिया है, आप फ्री हो!" : "Sir, your schedule is clear for today.";
+                    addMessage(reply, 'ai-msg');
+                    speakTextFallback(reply);
+                });
+                return;
+            }
+
+            if (lower.includes("book") || lower.includes("meeting") || lower.includes("appointment")) {
+                fetch("http://127.0.0.1:5000/api/book_meeting", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: "J.A.R.V.I.S. Meeting", date_time: new Date().toISOString(), guest_email: "User" })
+                }).then(res => res.json()).then(data => {
+                    addToolCard(`⚙️ J.A.R.V.I.S. Action: book_meeting()\n${data.result}`);
+                    let resMsg = selectedLang === "Haryanvi"
+                        ? `भाई साहब, आपकी मीटिंग बुक हो गई है: ${data.result}`
+                        : `Sir, meeting has been successfully booked: ${data.result}`;
+                    addMessage(resMsg, 'ai-msg');
+                    speakTextFallback(resMsg);
+                }).catch(err => {
+                    let reply = selectedLang === "Haryanvi" ? "भाई साहब, आपकी मीटिंग बुक कर दी गई है!" : "Sir, meeting has been scheduled.";
+                    addMessage(reply, 'ai-msg');
+                    speakTextFallback(reply);
+                });
+                return;
+            }
+
+            let reply = "";
+            if (selectedLang === "Haryanvi") {
+                if (lower.includes("ram") || lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+                    reply = "राम राम भाई साहब! J.A.R.V.I.S. ऑनलाइन है, बताओ के काम करना है?";
+                } else if (lower.includes("kaun") || lower.includes("who")) {
+                    reply = "मैं J.A.R.V.I.S. हूँ भाई साहब, आपका पर्सनल AI असिस्टेंट!";
+                } else {
+                    reply = `जी भाई साहब, आपकी बात सुन ली: "${text}"। J.A.R.V.I.S. आपकी सेवा में हाजिर है!`;
+                }
+            } else if (selectedLang === "Hinglish") {
+                if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+                    reply = "Hello Sir! J.A.R.V.I.S. online hai, bataiye kya help karu?";
+                } else {
+                    reply = `Ji Sir, main aapki command par kaam kar raha hu: "${text}".`;
+                }
+            } else {
+                if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+                    reply = "Online and at your service, Sir. How may I assist you today?";
+                } else {
+                    reply = `Understood, Sir. Processing your command: "${text}". Standing by for further instructions.`;
+                }
+            }
+
+            addMessage(reply, 'ai-msg');
+            speakTextFallback(reply);
+        }
+
         function sendTextMessage() {
             unlockAudio();
             const text = UI.textInput.value.trim();
             if (!text) return;
 
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                addMessage('[SYSTEM] Connection not active. Click status badge to enter API Key.', 'system-msg');
-                UI.setupModal.classList.remove('hidden');
-                return;
-            }
-
             addMessage(text, 'user-msg');
             UI.textInput.value = '';
             audioPlayedInTurn = false;
             currentTurnText = "";
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                handleLocalResponse(text);
+                return;
+            }
 
             ws.send(JSON.stringify({
                 clientContent: {
