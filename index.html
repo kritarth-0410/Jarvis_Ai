@@ -380,7 +380,12 @@
             <p style="font-family: 'Roboto Mono', monospace; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1.5rem; letter-spacing: 1px;">ADVANCED REAL-TIME MULTILINGUAL VOICE ASSISTANT</p>
             
             <input type="password" id="apiKey" class="api-input" placeholder="Enter Gemini API Key (AIza...)">
-            
+
+            <select id="modelSelect" class="voice-select">
+                <option value="models/gemini-2.0-flash-exp" selected>🧠 Model: Gemini 2.0 Flash Exp (Recommended)</option>
+                <option value="models/gemini-2.0-flash-realtime-exp">🧠 Model: Gemini 2.0 Flash Realtime Exp</option>
+            </select>
+
             <select id="langSelect" class="voice-select">
                 <option value="Haryanvi" selected>🌐 Language: Haryanvi (हरियाणवी & English Mix)</option>
                 <option value="English">🌐 Language: English (Refined British J.A.R.V.I.S.)</option>
@@ -410,9 +415,10 @@
         <span class="hud-sub">Real-Time Voice Assistant Protocol</span>
     </div>
 
-    <div class="status-badge" id="statusBadge">
+    <div class="status-badge" id="statusBadge" style="cursor: pointer;" title="Click to open settings/reconnect">
         <div class="dot" id="statusDot"></div>
         <span id="statusText">SYSTEM STANDBY</span>
+        <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 0.4rem;">⚙️</span>
     </div>
 
     <div class="orb-container" id="orbContainer">
@@ -437,9 +443,11 @@
             startBtn: document.getElementById('startSessionBtn'),
             testVoiceBtn: document.getElementById('testVoiceBtn'),
             apiKeyInput: document.getElementById('apiKey'),
+            modelSelect: document.getElementById('modelSelect'),
             langSelect: document.getElementById('langSelect'),
             voiceSelect: document.getElementById('voiceSelect'),
             callBtn: document.getElementById('callBtn'),
+            statusBadge: document.getElementById('statusBadge'),
             statusText: document.getElementById('statusText'),
             statusDot: document.getElementById('statusDot'),
             transcript: document.getElementById('transcript'),
@@ -469,6 +477,12 @@
         const savedKey = localStorage.getItem('jarvis_api_key');
         if (savedKey) {
             UI.apiKeyInput.value = savedKey;
+        }
+
+        if (UI.statusBadge) {
+            UI.statusBadge.addEventListener('click', () => {
+                UI.setupModal.classList.remove('hidden');
+            });
         }
 
         let synthVoices = [];
@@ -560,11 +574,16 @@
         UI.startBtn.addEventListener('click', () => {
             unlockAudio();
             const key = UI.apiKeyInput.value.trim();
+            const selectedModel = UI.modelSelect ? UI.modelSelect.value : "models/gemini-2.0-flash-exp";
             const selectedVoice = UI.voiceSelect ? UI.voiceSelect.value : "Charon";
             const selectedLang = UI.langSelect ? UI.langSelect.value : "Haryanvi";
             if (!key) return alert("API Key is required to power J.A.R.V.I.S.");
 
             localStorage.setItem('jarvis_api_key', key);
+
+            if (ws) {
+                try { ws.close(); } catch(e){}
+            }
 
             UI.setupModal.classList.add('hidden');
             updateStatus('CONNECTING...', 'speaking');
@@ -576,12 +595,14 @@
             ws.onerror = (err) => {
                 console.error("WebSocket Error:", err);
                 updateStatus('CONNECTION ERROR', 'muted');
-                addMessage('[ERROR] Could not connect to Gemini Live API. Please verify your API Key.', 'system-msg');
+                addMessage('[ERROR] Could not connect to Gemini Live API. Please verify your API Key & Internet connection.', 'system-msg');
             };
 
             ws.onclose = (e) => {
                 console.warn("WebSocket Closed:", e);
                 updateStatus('DISCONNECTED', 'muted');
+                const reasonStr = e.reason ? ` (${e.reason})` : '';
+                addMessage(`[SYSTEM] Connection closed (Code ${e.code}${reasonStr}). Click status badge ⚙️ to enter key & reconnect.`, 'system-msg');
             };
 
             ws.onopen = () => {
@@ -627,9 +648,9 @@
 
                 ws.send(JSON.stringify({
                     setup: {
-                        model: "models/gemini-2.0-flash-exp",
+                        model: selectedModel,
                         generationConfig: {
-                            responseModalities: ["AUDIO", "TEXT"],
+                            responseModalities: ["AUDIO"],
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
                         },
                         systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -677,6 +698,15 @@
                     }
 
                     const msg = JSON.parse(rawText);
+
+                    if (msg.error) {
+                        console.error("Gemini API Error:", msg.error);
+                        updateStatus('API ERROR', 'muted');
+                        const errMsg = msg.error.message || JSON.stringify(msg.error);
+                        addMessage(`[ERROR] Gemini API Error: ${errMsg}`, 'system-msg');
+                        speakTextFallback(`API Error: ${errMsg}`);
+                        return;
+                    }
 
                     if (msg.toolCall) {
                         const functionCalls = msg.toolCall.functionCalls;
@@ -772,7 +802,13 @@
         function sendTextMessage() {
             unlockAudio();
             const text = UI.textInput.value.trim();
-            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+            if (!text) return;
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addMessage('[SYSTEM] Connection not active. Click status badge ⚙️ to enter API key & connect.', 'system-msg');
+                UI.setupModal.classList.remove('hidden');
+                return;
+            }
 
             addMessage(text, 'user-msg');
             UI.textInput.value = '';
