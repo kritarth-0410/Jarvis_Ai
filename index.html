@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. AI — Stark Industries Assistant</title>
+    <title>J.A.R.V.I.S. AI — Voice Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -106,8 +106,8 @@
 
         .orb-container {
             position: relative;
-            width: 170px;
-            height: 170px;
+            width: 180px;
+            height: 180px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -115,37 +115,61 @@
             margin-bottom: 2rem;
         }
 
-        .call-button {
-            width: 110px;
-            height: 110px;
+        .arc-reactor-btn {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             border: 2px solid var(--accent);
-            background: radial-gradient(circle, #0e1726 0%, #060b13 100%);
-            color: var(--accent);
-            font-size: 2.2rem;
+            background: radial-gradient(circle, #091a34 0%, #030812 100%);
             cursor: pointer;
             z-index: 10;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.4), inset 0 0 25px rgba(0, 240, 255, 0.3);
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 0;
+            outline: none;
         }
 
-        .call-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 45px rgba(0, 240, 255, 0.6), inset 0 0 30px rgba(0, 240, 255, 0.4);
+        .arc-reactor-svg {
+            width: 95px;
+            height: 95px;
         }
 
-        .call-button.active {
+        .spin-ring {
+            transform-origin: center;
+            animation: reactor-spin 15s linear infinite;
+        }
+
+        @keyframes reactor-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .arc-reactor-btn:hover {
+            transform: scale(1.06);
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.75), inset 0 0 35px rgba(0, 240, 255, 0.5);
+        }
+
+        .arc-reactor-btn.active {
             background: radial-gradient(circle, #ef4444 0%, #7f1d1d 100%);
             border-color: #fca5a5;
-            color: white;
-            box-shadow: 0 0 35px rgba(239, 68, 68, 0.6);
+            box-shadow: 0 0 45px rgba(239, 68, 68, 0.75);
             transform: scale(var(--mic-scale, 1));
         }
 
-        /* Arc Reactor Visualizer Rings */
+        .arc-reactor-btn.active .arc-reactor-svg line,
+        .arc-reactor-btn.active .arc-reactor-svg circle,
+        .arc-reactor-btn.active .arc-reactor-svg polygon {
+            stroke: #ffffff;
+        }
+
+        .arc-reactor-btn.active .core-glow {
+            fill: #ffffff;
+        }
+
+        /* Arc Reactor Visualizer Ring */
         .ring {
             position: absolute;
             width: 100%;
@@ -344,7 +368,34 @@
 
     <div class="orb-container" id="orbContainer">
         <div class="ring"></div>
-        <button class="call-button" id="callBtn">🎙️</button>
+        <button class="arc-reactor-btn" id="callBtn" title="Activate J.A.R.V.I.S. Arc Reactor">
+            <svg viewBox="0 0 100 100" class="arc-reactor-svg">
+                <!-- Outer Glow Circle -->
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#00f0ff" stroke-width="2" opacity="0.7"/>
+                <circle cx="50" cy="50" r="38" fill="none" stroke="#00f0ff" stroke-width="1.5" stroke-dasharray="6 3" class="spin-ring"/>
+                
+                <!-- 10 Arc Reactor Energy Coils -->
+                <g stroke="#00f0ff" stroke-width="3.5" opacity="0.95" stroke-linecap="round">
+                    <line x1="50" y1="6" x2="50" y2="14" />
+                    <line x1="76" y1="14" x2="71" y2="19" />
+                    <line x1="93" y1="37" x2="86" y2="39" />
+                    <line x1="93" y1="63" x2="86" y2="61" />
+                    <line x1="76" y1="86" x2="71" y2="81" />
+                    <line x1="50" y1="94" x2="50" y2="86" />
+                    <line x1="24" y1="86" x2="29" y2="81" />
+                    <line x1="7" y1="63" x2="14" y2="61" />
+                    <line x1="7" y1="37" x2="14" y2="39" />
+                    <line x1="24" y1="14" x2="29" y2="19" />
+                </g>
+                
+                <!-- Inner Core -->
+                <circle cx="50" cy="50" r="25" fill="#041122" stroke="#00f0ff" stroke-width="2"/>
+                
+                <!-- Center Triangle Core -->
+                <polygon points="50,32 65,60 35,60" fill="none" stroke="#00f0ff" stroke-width="2.5" />
+                <circle cx="50" cy="50" r="7" fill="#00f0ff" class="core-glow"/>
+            </svg>
+        </button>
     </div>
 
     <div class="transcript-container" id="transcript">
@@ -392,9 +443,20 @@
             const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
             ws = new WebSocket(wsUrl);
 
+            ws.onerror = (err) => {
+                console.error("WebSocket Error:", err);
+                updateStatus('CONNECTION ERROR', 'muted');
+                addMessage('[ERROR] Could not connect to Gemini Live API. Please check your API key.', 'system-msg');
+            };
+
+            ws.onclose = (e) => {
+                console.warn("WebSocket Closed:", e);
+                updateStatus('DISCONNECTED', 'muted');
+            };
+
             ws.onopen = () => {
                 updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
-                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor mic to speak.`, 'system-msg');
+                addMessage(`[J.A.R.V.I.S.] Online and at your service, Sir (${selectedVoice} voice). Press the Arc Reactor to activate audio input.`, 'system-msg');
 
                 // 🧠 CONTEXT INJECTION: J.A.R.V.I.S. Assistant Persona
                 const currentDate = new Date().toString();
@@ -411,7 +473,7 @@
 
                 ws.send(JSON.stringify({
                     setup: {
-                        model: "models/gemini-3.1-flash-live-preview",
+                        model: "models/gemini-2.0-flash-exp",
                         generationConfig: {
                             responseModalities: ["AUDIO"],
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
@@ -531,9 +593,8 @@
 
             if (isCallActive) {
                 UI.callBtn.classList.add('active');
-                UI.callBtn.innerHTML = '⏹️';
                 updateStatus('LISTENING...', 'live');
-                addMessage('[J.A.R.V.I.S.] Audio sensor active. I am listening, Sir.', 'system-msg');
+                addMessage('[J.A.R.V.I.S.] Arc Reactor active. I am listening, Sir.', 'system-msg');
 
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
@@ -570,12 +631,10 @@
                 } catch (err) {
                     isCallActive = false;
                     UI.callBtn.classList.remove('active');
-                    UI.callBtn.innerHTML = '🎙️';
                     updateStatus('J.A.R.V.I.S. ONLINE', 'muted');
                 }
             } else {
                 UI.callBtn.classList.remove('active');
-                UI.callBtn.innerHTML = '🎙️';
                 UI.orbContainer.classList.remove('speaking-mode');
                 updateStatus('STANDBY', 'muted');
 
