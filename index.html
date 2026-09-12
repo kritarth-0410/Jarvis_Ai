@@ -116,57 +116,50 @@
         }
 
         .arc-reactor-btn {
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             border: 2px solid var(--accent);
-            background: radial-gradient(circle, #091a34 0%, #030812 100%);
+            background: #030812;
             cursor: pointer;
             z-index: 10;
-            box-shadow: 0 0 35px rgba(0, 240, 255, 0.4), inset 0 0 25px rgba(0, 240, 255, 0.3);
-            transition: all 0.3s ease;
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.5), inset 0 0 20px rgba(0, 240, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
             outline: none;
+            overflow: hidden;
+            position: relative;
         }
 
-        .arc-reactor-svg {
-            width: 95px;
-            height: 95px;
-        }
-
-        .spin-ring {
-            transform-origin: center;
-            animation: reactor-spin 15s linear infinite;
-        }
-
-        @keyframes reactor-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .arc-reactor-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.7));
+            transition: filter 0.3s, transform 0.3s;
         }
 
         .arc-reactor-btn:hover {
-            transform: scale(1.06);
-            box-shadow: 0 0 50px rgba(0, 240, 255, 0.75), inset 0 0 35px rgba(0, 240, 255, 0.5);
+            transform: scale(1.08);
+            box-shadow: 0 0 55px rgba(0, 240, 255, 0.85), inset 0 0 35px rgba(0, 240, 255, 0.5);
+        }
+
+        .arc-reactor-btn:hover .arc-reactor-img {
+            filter: drop-shadow(0 0 18px rgba(0, 240, 255, 1));
         }
 
         .arc-reactor-btn.active {
-            background: radial-gradient(circle, #ef4444 0%, #7f1d1d 100%);
             border-color: #fca5a5;
-            box-shadow: 0 0 45px rgba(239, 68, 68, 0.75);
+            box-shadow: 0 0 55px rgba(239, 68, 68, 0.9);
             transform: scale(var(--mic-scale, 1));
         }
 
-        .arc-reactor-btn.active .arc-reactor-svg line,
-        .arc-reactor-btn.active .arc-reactor-svg circle,
-        .arc-reactor-btn.active .arc-reactor-svg polygon {
-            stroke: #ffffff;
-        }
-
-        .arc-reactor-btn.active .core-glow {
-            fill: #ffffff;
+        .arc-reactor-btn.active .arc-reactor-img {
+            filter: drop-shadow(0 0 22px rgba(239, 68, 68, 1)) hue-rotate(130deg);
         }
 
         /* Arc Reactor Visualizer Ring */
@@ -369,32 +362,7 @@
     <div class="orb-container" id="orbContainer">
         <div class="ring"></div>
         <button class="arc-reactor-btn" id="callBtn" title="Activate J.A.R.V.I.S. Arc Reactor">
-            <svg viewBox="0 0 100 100" class="arc-reactor-svg">
-                <!-- Outer Glow Circle -->
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#00f0ff" stroke-width="2" opacity="0.7"/>
-                <circle cx="50" cy="50" r="38" fill="none" stroke="#00f0ff" stroke-width="1.5" stroke-dasharray="6 3" class="spin-ring"/>
-                
-                <!-- 10 Arc Reactor Energy Coils -->
-                <g stroke="#00f0ff" stroke-width="3.5" opacity="0.95" stroke-linecap="round">
-                    <line x1="50" y1="6" x2="50" y2="14" />
-                    <line x1="76" y1="14" x2="71" y2="19" />
-                    <line x1="93" y1="37" x2="86" y2="39" />
-                    <line x1="93" y1="63" x2="86" y2="61" />
-                    <line x1="76" y1="86" x2="71" y2="81" />
-                    <line x1="50" y1="94" x2="50" y2="86" />
-                    <line x1="24" y1="86" x2="29" y2="81" />
-                    <line x1="7" y1="63" x2="14" y2="61" />
-                    <line x1="7" y1="37" x2="14" y2="39" />
-                    <line x1="24" y1="14" x2="29" y2="19" />
-                </g>
-                
-                <!-- Inner Core -->
-                <circle cx="50" cy="50" r="25" fill="#041122" stroke="#00f0ff" stroke-width="2"/>
-                
-                <!-- Center Triangle Core -->
-                <polygon points="50,32 65,60 35,60" fill="none" stroke="#00f0ff" stroke-width="2.5" />
-                <circle cx="50" cy="50" r="7" fill="#00f0ff" class="core-glow"/>
-            </svg>
+            <img src="arc_reactor.png" alt="Arc Reactor Core" class="arc-reactor-img">
         </button>
     </div>
 
