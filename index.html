@@ -451,7 +451,20 @@
         let aiAnalyser = null;
         let visualizerId = null;
 
+        function getAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+                aiAnalyser = audioContext.createAnalyser();
+                aiAnalyser.fftSize = 256;
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            return audioContext;
+        }
+
         UI.startBtn.addEventListener('click', () => {
+            getAudioContext();
             const key = UI.apiKeyInput.value.trim();
             const selectedVoice = UI.voiceSelect ? UI.voiceSelect.value : "Charon";
             if (!key) return alert("API Key is required to power J.A.R.V.I.S.");
@@ -586,7 +599,8 @@
 
                         if (content.interrupted) {
                             setSpeakingState(false);
-                            nextPlayTime = audioContext ? audioContext.currentTime : 0;
+                            const ctx = getAudioContext();
+                            nextPlayTime = ctx.currentTime;
                             activeBubble = null;
                             activeSources.forEach(source => { try { source.stop(); } catch (e) { } });
                             activeSources = [];
@@ -603,7 +617,7 @@
 
                         if (content.modelTurn) {
                             for (const part of content.modelTurn.parts) {
-                                if (part.inlineData) {
+                                if (part.inlineData && part.inlineData.data) {
                                     playAudioBase64(part.inlineData.data);
                                 }
                             }
@@ -621,6 +635,7 @@
         });
 
         function sendTextMessage() {
+            getAudioContext();
             const text = UI.textInput.value.trim();
             if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -643,6 +658,7 @@
         });
 
         UI.callBtn.addEventListener('click', async () => {
+            getAudioContext();
             isCallActive = !isCallActive;
 
             if (isCallActive) {
@@ -651,23 +667,21 @@
                 addMessage('[J.A.R.V.I.S.] Arc Reactor active. Audio sensors listening, Sir.', 'system-msg');
 
                 try {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-                    nextPlayTime = audioContext.currentTime;
+                    const ctx = getAudioContext();
+                    nextPlayTime = ctx.currentTime;
 
-                    micAnalyser = audioContext.createAnalyser();
-                    aiAnalyser = audioContext.createAnalyser();
+                    micAnalyser = ctx.createAnalyser();
                     micAnalyser.fftSize = 256;
-                    aiAnalyser.fftSize = 256;
                     startVisualizer();
 
                     mediaStream = await navigator.mediaDevices.getUserMedia({
                         audio: { echoCancellation: true, noiseSuppression: true }
                     });
 
-                    const source = audioContext.createMediaStreamSource(mediaStream);
+                    const source = ctx.createMediaStreamSource(mediaStream);
                     source.connect(micAnalyser);
 
-                    scriptProcessor = audioContext.createScriptProcessor(1024, 1, 1);
+                    scriptProcessor = ctx.createScriptProcessor(1024, 1, 1);
                     scriptProcessor.onaudioprocess = (e) => {
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             const float32Data = e.inputBuffer.getChannelData(0);
@@ -682,7 +696,7 @@
                     };
 
                     source.connect(scriptProcessor);
-                    scriptProcessor.connect(audioContext.destination);
+                    scriptProcessor.connect(ctx.destination);
 
                 } catch (err) {
                     isCallActive = false;
@@ -700,11 +714,11 @@
 
                 if (scriptProcessor) scriptProcessor.disconnect();
                 if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-                if (audioContext) audioContext.close();
             }
         });
 
         function startVisualizer() {
+            if (!micAnalyser || !aiAnalyser) return;
             const micData = new Uint8Array(micAnalyser.frequencyBinCount);
             const aiData = new Uint8Array(aiAnalyser.frequencyBinCount);
 
@@ -742,31 +756,39 @@
         }
 
         function playAudioBase64(base64) {
-            if (!audioContext) return;
+            try {
+                const ctx = getAudioContext();
 
-            let binary = atob(base64);
-            let buffer = new ArrayBuffer(binary.length);
-            let view = new DataView(buffer);
-            for (let i = 0; i < binary.length; i++) { view.setUint8(i, binary.charCodeAt(i)); }
+                let binary = atob(base64);
+                let buffer = new ArrayBuffer(binary.length);
+                let view = new DataView(buffer);
+                for (let i = 0; i < binary.length; i++) { view.setUint8(i, binary.charCodeAt(i)); }
 
-            const int16Array = new Int16Array(buffer);
-            const audioBuffer = audioContext.createBuffer(1, int16Array.length, 24000);
-            const channelData = audioBuffer.getChannelData(0);
+                const int16Array = new Int16Array(buffer);
+                const audioBuffer = ctx.createBuffer(1, int16Array.length, 24000);
+                const channelData = audioBuffer.getChannelData(0);
 
-            for (let i = 0; i < int16Array.length; i++) { channelData[i] = int16Array[i] / 32768.0; }
+                for (let i = 0; i < int16Array.length; i++) { channelData[i] = int16Array[i] / 32768.0; }
 
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
 
-            source.connect(aiAnalyser);
-            aiAnalyser.connect(audioContext.destination);
+                if (aiAnalyser) {
+                    source.connect(aiAnalyser);
+                    aiAnalyser.connect(ctx.destination);
+                } else {
+                    source.connect(ctx.destination);
+                }
 
-            const startTime = Math.max(audioContext.currentTime, nextPlayTime);
-            source.start(startTime);
-            nextPlayTime = startTime + audioBuffer.duration;
+                const startTime = Math.max(ctx.currentTime, nextPlayTime);
+                source.start(startTime);
+                nextPlayTime = startTime + audioBuffer.duration;
 
-            activeSources.push(source);
-            source.onended = () => { activeSources = activeSources.filter(s => s !== source); };
+                activeSources.push(source);
+                source.onended = () => { activeSources = activeSources.filter(s => s !== source); };
+            } catch (err) {
+                console.error("Error playing audio chunk:", err);
+            }
         }
 
         function updateStatus(text, dotClass) {
